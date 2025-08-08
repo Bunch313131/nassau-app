@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
-<title>Nassau – Hi/Low (Vanilla JS v1.6.2)</title>
+<title>Nassau – Hi/Low (Vanilla JS v1.6.3)</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -44,7 +44,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.2)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.3)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -156,6 +156,8 @@
   function strokesFor(game,pid,hole){ var n=+game.strokesCount[pid]||0; if(!n) return 0; var base=Math.floor(n/18); var rem=n%18; var rank=+state.course.hcp[hole]||0; var extra=(rank>0&&rank<=rem)?1:0; return base+extra; }
   function computeNet(gross,s){ if(gross==null||!isFinite(gross)) return null; return gross - (isFinite(s||0)?(s||0):0); }
 
+  function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=start;i<=end;i++){ var v=arr&&arr[i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
+
   // Hi/Low hole diff (A perspective). Low sweeps both if split; ties give no points.
   function holeDiff(game,hole){ var A=game.teamA,B=game.teamB,G=game.gross; if(!A||!B||A.length!==2||B.length!==2) return null; var a0=computeNet(+G[A[0]][hole],strokesFor(game,A[0],hole)); var a1=computeNet(+G[A[1]][hole],strokesFor(game,A[1],hole)); var b0=computeNet(+G[B[0]][hole],strokesFor(game,B[0],hole)); var b1=computeNet(+G[B[1]][hole],strokesFor(game,B[1],hole)); if(a0==null||a1==null||b0==null||b1==null) return null; var aLow=Math.min(a0,a1), bLow=Math.min(b0,b1), aHigh=Math.max(a0,a1), bHigh=Math.max(b0,b1); var lowW=(aLow<bLow)?'A':(bLow<aLow)?'B':'T'; var highW=(aHigh<bHigh)?'A':(bHigh<aHigh)?'B':'T'; if(lowW!=='T'&&highW!=='T'&&lowW!==highW) return lowW==='A'?+2:-2; var d=0; if(lowW==='A') d++; else if(lowW==='B') d--; if(highW==='A') d++; else if(highW==='B') d--; return d; }
 
@@ -264,7 +266,70 @@
     return h('div',{},[ playersCard, courseCard, gamesCard, helpCard ]);
   }
 
-  function screenScores(){ var g0=state.games[0]; function grossInput(pid,hole){ return h('input',{ type:'tel',inputmode:'numeric',pattern:'[0-9]*',placeholder:'-', value:(g0.gross[pid][hole]==null?'':String(g0.gross[pid][hole])), onfocus:beginEdit, oninput:function(e){ var raw=e.target.value; var d=raw.replace(/[^0-9]/g,''); if(d!==raw) e.target.value=d; var v=(d==='')?null:parseInt(d,10); for(var gi=0; gi<state.games.length; gi++){ state.games[gi].gross[pid][hole]=(isNaN(v)?null:v); } }, onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?null:parseInt(d,10); for(var gi2=0; gi2<state.games.length; gi2++){ state.games[gi2].gross[pid][hole]=(isNaN(v)?null:v); } e.target.value=(v==null?'':String(v)); endEdit(); } }); } var head=[h('th',{class:'sticky'},'Player')]; for(var hi=0; hi<18; hi++){ head.push(h('th',{},String(hi+1))); } var thead=h('thead',{},[ h('tr',{}, head) ]); var rows=[]; for(var i3=0;i3<state.players.length;i3++){ (function(p){ var cells=[h('td',{class:'sticky'},p.name)]; for(var hh=0; hh<18; hh++){ cells.push(h('td',{},[ grossInput(p.id,hh) ])); } rows.push(h('tr',{},cells)); })(state.players[i3]); } var tbody=h('tbody',{},rows); return h('div',{},[ h('div',{class:'row',style:'align-items:center;'},[ h('div',{class:'pill'},'Entering GROSS for all players'), h('div',{class:'note'},'Net is per game from strokes + course HCP') ]), h('div',{class:'card scroll'},[ h('table',{},[ thead, tbody ]) ]) ]); }
+  function screenScores(){
+    var g0=state.games[0];
+
+    function updateSums(pid){
+      var arr=g0.gross[pid];
+      var f=sumGrossRange(arr,0,8);
+      var b=sumGrossRange(arr,9,17);
+      var tot=(f==null && b==null)? null : ((f||0)+(b||0));
+      var fEl=document.getElementById('sumF_'+pid);
+      var bEl=document.getElementById('sumB_'+pid);
+      var tEl=document.getElementById('sumT_'+pid);
+      if(fEl) fEl.textContent=(f==null?'':String(f));
+      if(bEl) bEl.textContent=(b==null?'':String(b));
+      if(tEl) tEl.textContent=(tot==null?'':String(tot));
+    }
+
+    function grossInput(pid,hole){
+      return h('input',{
+        type:'tel',inputmode:'numeric',pattern:'[0-9]*',placeholder:'-',
+        value:(g0.gross[pid][hole]==null?'':String(g0.gross[pid][hole])),
+        onfocus:beginEdit,
+        oninput:function(e){
+          var raw=e.target.value; var d=raw.replace(/[^0-9]/g,''); if(d!==raw) e.target.value=d;
+          var v=(d==='')?null:parseInt(d,10);
+          for(var gi=0; gi<state.games.length; gi++){ state.games[gi].gross[pid][hole]=(isNaN(v)?null:v); }
+        },
+        onblur:function(e){
+          var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?null:parseInt(d,10);
+          for(var gi2=0; gi2<state.games.length; gi2++){ state.games[gi2].gross[pid][hole]=(isNaN(v)?null:v); }
+          e.target.value=(v==null?'':String(v));
+          updateSums(pid); // update sums immediately after leaving the cell
+          endEdit();
+        }
+      });
+    }
+
+    var head=[h('th',{class:'sticky'},'Player')];
+    for(var hi=0; hi<18; hi++){ head.push(h('th',{},String(hi+1))); }
+    head.push(h('th',{},'F'), h('th',{},'B'), h('th',{},'TOT'));
+    var thead=h('thead',{},[ h('tr',{}, head) ]);
+    var rows=[];
+    for(var i3=0;i3<state.players.length;i3++){
+      (function(p){
+        var cells=[h('td',{class:'sticky'},p.name)];
+        for(var hh=0; hh<18; hh++){ cells.push(h('td',{},[ grossInput(p.id,hh) ])); }
+        var arr=g0.gross[p.id];
+        var f=sumGrossRange(arr,0,8);
+        var b=sumGrossRange(arr,9,17);
+        var tot=(f==null && b==null)? null : ((f||0)+(b||0));
+        cells.push(h('td',{id:'sumF_'+p.id}, (f==null?'':String(f))));
+        cells.push(h('td',{id:'sumB_'+p.id}, (b==null?'':String(b))));
+        cells.push(h('td',{id:'sumT_'+p.id}, (tot==null?'':String(tot))));
+        rows.push(h('tr',{},cells));
+      })(state.players[i3]);
+    }
+    var tbody=h('tbody',{},rows);
+    return h('div',{},[
+      h('div',{class:'row',style:'align-items:center;'},[
+        h('div',{class:'pill'},'Entering GROSS for all players'),
+        h('div',{class:'note'},'Front/Back/TOT sums update after you leave a cell.')
+      ]),
+      h('div',{class:'card scroll'},[ h('table',{},[ thead, tbody ]) ])
+    ]);
+  }
 
   function screenStatus(){
     function diffsArray(g){ var a=[]; for(var i=0;i<18;i++){ a.push(holeDiff(g,i)); } return a; }
@@ -384,6 +449,10 @@
       for(var k=0;k<ids.length;k++){ tg.gross[ids[k]]=make18(null); }
       for(var h=9; h<18; h++){ tg.gross['p1'][h]=5; tg.gross['p2'][h]=5; tg.gross['p3'][h]=3; tg.gross['p4'][h]=3; }
       var seg=buildSegmentLines(tg,9,17,1,true); console.assert(seg.lines.length<=9,'Back segment should have <=9 lines in worst case');
+      var hasStyle=false; try{ hasStyle=[].some.call(document.head.querySelectorAll('style'), function(s){ return (s.textContent||'').indexOf('--teamA:')!==-1; }); }catch(_e){}
+      console.assert(hasStyle, 'Style helper should inject a style tag');
+      var arr=make18(null); for(var h=9; h<18; h++){ arr[h]=5; }
+      console.assert(sumGrossRange(arr,9,17)===45, 'Back sum should be 45 for nine 5s');
       // New test: style element injected
       var hasStyle=false; try{ hasStyle=[].some.call(document.head.querySelectorAll('style'), function(s){ return (s.textContent||'').indexOf('--teamA:')!==-1; }); }catch(_e){}
       console.assert(hasStyle, 'Style helper should inject a style tag');
