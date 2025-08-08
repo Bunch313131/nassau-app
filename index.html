@@ -29,7 +29,8 @@
   table{ border-collapse:collapse; width:100%; font-size:14px; }
   th,td{ border:1px solid var(--border); padding:6px; text-align:center; vertical-align:top; }
   th.sticky, td.sticky{ position:sticky; left:0; background:var(--card); z-index:2; text-align:left; }
-  .tabs{ display:flex; gap:8px; margin:8px 0 12px; }
+  .tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
+  .tabs .btn{ min-height:32px; padding:6px 10px; font-size:13px; }
   .tabs .btn.active{ background:var(--acc); color:#fff; border-color:var(--acc); }
   .scroll{ overflow:auto; }
   .note{ font-size:12px; color:var(--muted); }
@@ -74,44 +75,11 @@
       '.card.scroll table td:not(.sticky), .card.scroll table th:not(.sticky){min-width:56px;}',
       '.card.scroll table input[type=tel]{width:54px;text-align:center;}',
       '.btn, input[type="text"], input[type="tel"], select{min-height:44px;}',
+      '.tabs .btn{min-height:32px;padding:6px 10px;font-size:13px;}',
       'button, input, select{-webkit-tap-highlight-color:transparent; touch-action:manipulation;}',
       '.card{box-shadow:0 1px 2px rgba(0,0,0,.04);}',
       ':root{--teamA:#16a34a; --teamB:#dc2626; --pill-bg:#fff;}'
-    ].join(' ');
-    document.head.appendChild(__style);
-  } catch(e) {
-    // Non-fatal; just show a small note if CSS injection fails
-    try { errBox.style.display='block'; errBox.textContent='Style init failed: '+e.message; } catch(_) {}
-  }
-
-  // Prevent re-render while typing
-  var __locks=0, __rt=null, __saveTimer=null;
-  function beginEdit(){ __locks++; }
-  function endEdit(){ __locks=Math.max(0,__locks-1); if(!__locks){ if(__rt) clearTimeout(__rt); queueSave(); __rt=setTimeout(function(){ render(); __rt=null; },120); } }
-
-  // ===== State =====
-  var state={ tab:'setup', players:[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}], games:[], activeGameId:null, course:{ hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16] } };
-
-  // ===== Persistence =====
-  var STORAGE_KEY='nassauV1';
-  function cloneForSave(){ return { tab:state.tab, players:state.players, games:state.games, activeGameId:state.activeGameId, course:state.course }; }
-  function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){} }
-  function loadState(){ try{ var raw=localStorage.getItem(STORAGE_KEY); if(!raw) return false; var obj=JSON.parse(raw); if(!obj||!Array.isArray(obj.games)) return false; state.tab=obj.tab||state.tab; state.players=Array.isArray(obj.players)?obj.players:state.players; state.games=Array.isArray(obj.games)?obj.games:state.games; state.activeGameId=obj.activeGameId||state.activeGameId; if(obj.course&&obj.course.hcp&&obj.course.hcp.length===18){ state.course.hcp=obj.course.hcp; } return true; }catch(_e){ return false; } }
-  function queueSave(){ if(__saveTimer) clearTimeout(__saveTimer); __saveTimer=setTimeout(saveState,200); }
-
-  function makeNewGame(){
-    var g={ id:uid(), teamA:['p1','p2'], teamB:['p3','p4'], stakes:{front:2,back:4,overall:2}, autoPress:{front:true,back:true,overall:false}, junkValue:{front:1,back:2}, junkCounts:{}, strokesCount:{}, gross:{} };
-    for(var i=0;i<state.players.length;i++){
-      var pid=state.players[i].id;
-      g.junkCounts[pid]=make18(0);
-      g.strokesCount[pid]=0;
-      var base = (state.games.length? (state.games[0].gross[pid]||make18(null)) : make18(null));
-      g.gross[pid]=base.slice();
-    }
-    return g;
-  }
-  var __loaded = loadState();
-  if(!__loaded || !state.games || !state.games.length){ state.games=[makeNewGame()]; state.activeGameId=state.games[0].id; }
+    ].join(' '); state.activeGameId=state.games[0].id; }
 
   function getGame(id){ for(var i=0;i<state.games.length;i++){ if(state.games[i].id===id) return state.games[i]; } return state.games[0]; }
   function playerName(id){ for(var i=0;i<state.players.length;i++){ if(state.players[i].id===id) return state.players[i].name; } return id; }
