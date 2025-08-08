@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
-<title>Nassau – Hi/Low (Vanilla JS v1.6.1)</title>
+<title>Nassau – Hi/Low (Vanilla JS v1.6.2)</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -44,7 +44,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.1)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.2)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -68,7 +68,29 @@
   var errBox=document.getElementById('err');
   window.addEventListener('error', function(ev){ errBox.style.display='block'; var loc=(ev.filename?(' @ '+ev.filename+':'+ev.lineno+':'+ev.colno):''); errBox.textContent=String(ev.message||ev)+loc; });
 
-  // ===== Mobile style helpers (try/catch to avoid parser errors) =====
+  // ===== State & Persistence =====
+  var state={ tab:'setup', players:[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}], games:[], activeGameId:null, course:{ hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16] } };
+  var STORAGE_KEY='nassauV1';
+  function cloneForSave(){ return { tab:state.tab, players:state.players, games:state.games, activeGameId:state.activeGameId, course:state.course }; }
+  function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){} }
+  function loadState(){ try{ var raw=localStorage.getItem(STORAGE_KEY); if(!raw) return false; var obj=JSON.parse(raw); if(!obj||!Array.isArray(obj.games)) return false; state.tab=obj.tab||state.tab; state.players=Array.isArray(obj.players)?obj.players:state.players; state.games=Array.isArray(obj.games)?obj.games:state.games; state.activeGameId=obj.activeGameId||state.activeGameId; if(obj.course&&obj.course.hcp&&obj.course.hcp.length===18){ state.course.hcp=obj.course.hcp; } return true; }catch(_e){ return false; } }
+  var __saveTimer=null; function queueSave(){ if(__saveTimer) clearTimeout(__saveTimer); __saveTimer=setTimeout(saveState,200); }
+
+  function makeNewGame(){
+    var g={ id:uid(), teamA:['p1','p2'], teamB:['p3','p4'], stakes:{front:2,back:4,overall:2}, autoPress:{front:true,back:true,overall:false}, junkValue:{front:1,back:2}, junkCounts:{}, strokesCount:{}, gross:{} };
+    for(var i=0;i<state.players.length;i++){
+      var pid=state.players[i].id;
+      g.junkCounts[pid]=make18(0);
+      g.strokesCount[pid]=0;
+      var base = (state.games.length? (state.games[0].gross[pid]||make18(null)) : make18(null));
+      g.gross[pid]=base.slice();
+    }
+    return g;
+  }
+  var __loaded = loadState();
+  if(!__loaded || !state.games || !state.games.length){ state.games=[makeNewGame()]; state.activeGameId=state.games[0].id; }
+
+  // ===== Mobile style helpers (with proper catch) =====
   try {
     var __style = document.createElement('style');
     __style.textContent = [
@@ -79,7 +101,16 @@
       'button, input, select{-webkit-tap-highlight-color:transparent; touch-action:manipulation;}',
       '.card{box-shadow:0 1px 2px rgba(0,0,0,.04);}',
       ':root{--teamA:#16a34a; --teamB:#dc2626; --pill-bg:#fff;}'
-    ].join(' '); state.activeGameId=state.games[0].id; }
+    ].join(' ');
+    document.head.appendChild(__style);
+  } catch (e) {
+    try { errBox.style.display='block'; errBox.textContent='Style init failed: '+e.message; } catch(_) {}
+  }
+
+  // ===== Edit locks (avoid flicker while typing) =====
+  var __locks=0, __rt=null;
+  function beginEdit(){ __locks++; }
+  function endEdit(){ __locks=Math.max(0,__locks-1); if(!__locks){ if(__rt) clearTimeout(__rt); queueSave(); __rt=setTimeout(function(){ render(); __rt=null; },120); } }
 
   function getGame(id){ for(var i=0;i<state.games.length;i++){ if(state.games[i].id===id) return state.games[i]; } return state.games[0]; }
   function playerName(id){ for(var i=0;i<state.players.length;i++){ if(state.players[i].id===id) return state.players[i].name; } return id; }
@@ -96,7 +127,7 @@
     for(var i=0;i<children.length;i++){ var c=children[i]; if(c==null) continue; if(typeof c==='string') e.appendChild(document.createTextNode(c)); else e.appendChild(c); }
     return e; }
 
-  // Labels (single, de-duped impl)
+  // Labels
   function gameShortLabel(game){
     function abbr(pid, used){
       var nm = playerName(pid)||'';
@@ -343,7 +374,7 @@
   document.getElementById('resetBtn').addEventListener('click', function(){ if(!confirm('Reset everything?')) return; localStorage.removeItem(STORAGE_KEY); state.players=[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}]; state.games=[makeNewGame()]; state.activeGameId=state.games[0].id; state.course.hcp=[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16]; saveState(); render(); });
   document.getElementById('clearBtn').addEventListener('click', function(){ if(!confirm('Clear saved data on this device?')) return; localStorage.removeItem(STORAGE_KEY); alert('Saved data cleared. This does not reset the current screen until you refresh or Reset.'); });
 
-  // ===== Self-tests (lightweight sanity checks) =====
+  // ===== Self-tests (keep existing + add a couple more) =====
   (function selfTests(){
     try {
       console.assert(Array.isArray(make18(0)) && make18(0).length===18, 'make18 should return length 18');
@@ -353,6 +384,9 @@
       for(var k=0;k<ids.length;k++){ tg.gross[ids[k]]=make18(null); }
       for(var h=9; h<18; h++){ tg.gross['p1'][h]=5; tg.gross['p2'][h]=5; tg.gross['p3'][h]=3; tg.gross['p4'][h]=3; }
       var seg=buildSegmentLines(tg,9,17,1,true); console.assert(seg.lines.length<=9,'Back segment should have <=9 lines in worst case');
+      // New test: style element injected
+      var hasStyle=false; try{ hasStyle=[].some.call(document.head.querySelectorAll('style'), function(s){ return (s.textContent||'').indexOf('--teamA:')!==-1; }); }catch(_e){}
+      console.assert(hasStyle, 'Style helper should inject a style tag');
     } catch(e){ errBox.style.display='block'; errBox.textContent='Self-test failed: '+e.message; }
   })();
 
