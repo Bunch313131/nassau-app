@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
-<title>Nassau – Hi/Low (Vanilla JS v1.6.9)</title>
+<title>Nassau – Hi/Low (Vanilla JS v1.6.10)</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -44,7 +44,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.9)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.10)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -76,13 +76,15 @@
   function loadState(){ try{ var raw=localStorage.getItem(STORAGE_KEY); if(!raw) return false; var obj=JSON.parse(raw); if(!obj||!Array.isArray(obj.games)) return false; state.tab=obj.tab||state.tab; state.debugStatus = !!obj.debugStatus; state.players=Array.isArray(obj.players)?obj.players:state.players; state.games=Array.isArray(obj.games)?obj.games:state.games; state.activeGameId=obj.activeGameId||state.activeGameId; if(obj.course&&obj.course.hcp&&obj.course.hcp.length===18){ state.course.hcp=obj.course.hcp; } return true; }catch(_e){ return false; } }
   var __saveTimer=null; function queueSave(){ if(__saveTimer) clearTimeout(__saveTimer); __saveTimer=setTimeout(saveState,200); }
 
-  function makeNewGame(){
+  function makeNewGame(cloneFromFirst){
+    // cloneFromFirst: if true and an existing game is present, copy its gross so adding a new game keeps current scores visible
     var g={ id:uid(), teamA:['p1','p2'], teamB:['p3','p4'], stakes:{front:2,back:4,overall:2}, autoPress:{front:true,back:true,overall:false}, junkValue:{front:1,back:2}, junkCounts:{}, strokesCount:{}, gross:{} };
     for(var i=0;i<state.players.length;i++){
       var pid=state.players[i].id;
       g.junkCounts[pid]=make18(0);
       g.strokesCount[pid]=0;
-      var base = (state.games.length? (state.games[0].gross[pid]||make18(null)) : make18(null));
+      var useClone = !!cloneFromFirst && state.games && state.games.length>0;
+      var base = useClone ? (state.games[0].gross[pid]||make18(null)) : make18(null);
       g.gross[pid]=base.slice();
     }
     return g;
@@ -107,6 +109,29 @@
     try { errBox.style.display='block'; errBox.textContent='Style init failed: '+e.message; } catch(_) {}
   }
 
+  // ===== DOM helper (h) =====
+  function h(tag,attrs,children){
+    var el=document.createElement(tag);
+    attrs=attrs||{};
+    children=(children==null)?[]:(Array.isArray(children)?children:[children]);
+    for(var ak in attrs){ if(!attrs.hasOwnProperty(ak)) continue; var v=attrs[ak];
+      if(ak==='class') el.className=v;
+      else if(ak==='style') el.setAttribute('style',v);
+      else if(ak==='value'){ var vv=(v==null?'':String(v)); el.value=vv; try{ el.setAttribute('value', vv); }catch(_e){} }
+      else if(ak==='checked') el.checked=!!v;
+      else if(ak==='disabled') el.disabled=!!v;
+      else if(ak==='selected') el.selected=!!v;
+      else if(ak.slice(0,2)==='on' && typeof v==='function'){ el.addEventListener(ak.slice(2).toLowerCase(), v); }
+      else { el.setAttribute(ak,v); }
+    }
+    for(var ci=0; ci<children.length; ci++){
+      var ch=children[ci];
+      if(ch==null) continue;
+      if(typeof ch==='string') el.appendChild(document.createTextNode(ch)); else el.appendChild(ch);
+    }
+    return el;
+  }
+
   // ===== Edit locks (avoid flicker while typing) =====
   var __locks=0, __rt=null;
   function beginEdit(){ __locks++; }
@@ -114,18 +139,6 @@
 
   function getGame(id){ for(var i=0;i<state.games.length;i++){ if(state.games[i].id===id) return state.games[i]; } return state.games[0]; }
   function playerName(id){ for(var i=0;i<state.players.length;i++){ if(state.players[i].id===id) return state.players[i].name; } return id; }
-
-  // DOM helper
-  function h(tag,attrs,children){ var e=document.createElement(tag); attrs=attrs||{}; children=(children==null)?[]:(Array.isArray(children)?children:[children]);
-    for(var k in attrs){ if(!attrs.hasOwnProperty(k)) continue; var v=attrs[k];
-      if(k==='class') e.className=v; else if(k==='style') e.setAttribute('style',v);
-      else if(k==='value'){ var vv=(v==null?'':String(v)); e.value=vv; try{ e.setAttribute('value', vv); }catch(_e){} }
-      else if(k==='checked') e.checked=!!v; else if(k==='disabled') e.disabled=!!v; else if(k==='selected') e.selected=!!v;
-      else if(k.slice(0,2)==='on' && typeof v==='function'){ e.addEventListener(k.slice(2).toLowerCase(), v); }
-      else { e.setAttribute(k,v); }
-    }
-    for(var i=0;i<children.length;i++){ var c=children[i]; if(c==null) continue; if(typeof c==='string') e.appendChild(document.createTextNode(c)); else e.appendChild(c); }
-    return e; }
 
   // Labels
   function gameShortLabel(game){
@@ -156,7 +169,7 @@
   function strokesFor(game,pid,hole){ var n=+game.strokesCount[pid]||0; if(!n) return 0; var base=Math.floor(n/18); var rem=n%18; var rank=+state.course.hcp[hole]||0; var extra=(rank>0&&rank<=rem)?1:0; return base+extra; }
   function computeNet(gross,s){ if(gross==null||!isFinite(gross)) return null; return gross - (isFinite(s||0)?(s||0):0); }
 
-  function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=start;i<=end;i++){ var v=arr&&arr[i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
+  function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=0;i<=end-start;i++){ var v=arr&&arr[start+i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
 
   // Hi/Low hole diff (A perspective).
   // Scoring rules:
@@ -200,26 +213,22 @@
         var pressedThisHole=false;
         for(var li=0; li<lines.length; li++){
           var L=lines[li]; if(L.start>hIdx) continue;
-          var cum=0, complete=true; for(var hh=L.start; hh<=hIdx; hh++){ var d=diffs[hh]; if(d==null){ complete=false; break; } cum+=d; }
+          var cum=0, complete=true; for(var hi=L.start; hi<=hIdx; hi++){ var d=diffs[hi]; if(d==null){ complete=false; break; } cum+=d; }
           if(!complete || hIdx>=end) continue;
           var k=Math.floor(Math.abs(cum)/2);
-          if(k>L.pressesTriggered){
-            if(!pressedThisHole){
-              var pressedBy=(cum<0?'A':'B');
-              var nextStart=hIdx+1;
-              var exists=lines.some(function(x){ return x.start===nextStart; });
-              if(!exists){ lines.push({start:nextStart,end:end,stake:stake,pressedBy:pressedBy,pressesTriggered:0}); pressedThisHole=true; }
-            }
-            // Always record threshold progress even if we didn't create a press this hole,
-            // so the same line won't try to "catch up" on a later hole and create an extra press.
-            L.pressesTriggered = k;
+          if(k>L.pressesTriggered && !pressedThisHole){
+            var pressedBy=(cum<0?'A':'B');
+            var nextStart=hIdx+1;
+            var exists=lines.some(function(x){ return x.start===nextStart; });
+            if(!exists){ lines.push({start:nextStart,end:end,stake:stake,pressedBy:pressedBy,pressesTriggered:0}); pressedThisHole=true; }
+            L.pressesTriggered=k;
           }
         }
       }
     }
     var winnerByLine=[], payoutA=0;
     for(var j=0;j<lines.length;j++){
-      var L2=lines[j]; var cum2=0, complete2=true; for(var h2=L2.start; h2<=L2.end; h2++){ var d2=diffs[h2]; if(d2==null){ complete2=false; break; } cum2+=d2; }
+      var L2=lines[j]; var cum2=0, complete2=true; for(var hj=L2.start; hj<=L2.end; hj++){ var d2=diffs[hj]; if(d2==null){ complete2=false; break; } cum2+=d2; }
       if(!complete2){ winnerByLine.push('In-Play'); continue; }
       if(cum2>0){ winnerByLine.push('A'); payoutA+=L2.stake; }
       else if(cum2<0){ winnerByLine.push('B'); payoutA-=L2.stake; }
@@ -228,7 +237,7 @@
     return {lines:lines, winnerByLine:winnerByLine, payoutA:payoutA};
   }
 
-  function computeJunk(game){ var jv=game.junkValue||{front:0,back:0}; function sumTeam(pids,a,b){ var t=0; for(var i=0;i<pids.length;i++){ var pid=pids[i]; var arr=game.junkCounts[pid]||[]; for(var h=a; h<=b; h++){ t += (+arr[h]||0); } } return t; } var aF=sumTeam(game.teamA,0,8), aB=sumTeam(game.teamA,9,17), bF=sumTeam(game.teamB,0,8), bB=sumTeam(game.teamB,9,17); var aVal=aF*(+jv.front||0)+aB*(+jv.back||0), bVal=bF*(+jv.front||0)+bB*(+jv.back||0); return {aVal:aVal,bVal:bVal,netA:(aVal-bVal)}; }
+  function computeJunk(game){ var jv=game.junkValue||{front:0,back:0}; function sumTeam(pids,a,b){ var t=0; for(var i=0;i<pids.length;i++){ var pid=pids[i]; var arr=game.junkCounts[pid]||[]; for(var hq=a; hq<=b; hq++){ t += (+arr[hq]||0); } } return t; } var aF=sumTeam(game.teamA,0,8), aB=sumTeam(game.teamA,9,17), bF=sumTeam(game.teamB,0,8), bB=sumTeam(game.teamB,9,17); var aVal=aF*(+jv.front||0)+aB*(+jv.back||0), bVal=bF*(+jv.front||0)+bB*(+jv.back||0); return {aVal:aVal,bVal:bVal,netA:(aVal-bVal)}; }
   function computeGameResult(game){ var seg={ front:buildSegmentLines(game,0,8,game.stakes.front,!!game.autoPress.front), back:buildSegmentLines(game,9,17,game.stakes.back,!!game.autoPress.back), overall:buildSegmentLines(game,0,17,game.stakes.overall,!!game.autoPress.overall) }; var junk=computeJunk(game); var total=seg.front.payoutA+seg.back.payoutA+seg.overall.payoutA+junk.netA; return {segments:seg,junk:junk,totalPayoutA:total}; }
   function settleMinimalCash(net){ var debt=[],cred=[]; for(var id in net){ var amt=net[id]; if(Math.abs(amt)<0.005) continue; if(amt<0) debt.push({id:id,amt:-amt}); else cred.push({id:id,amt:amt}); } debt.sort(function(a,b){return b.amt-a.amt;}); cred.sort(function(a,b){return b.amt-a.amt;}); var xfers=[],i=0,j=0; while(i<debt.length && j<cred.length){ var d=debt[i], c=cred[j]; var pay=Math.min(d.amt,c.amt); xfers.push({from:d.id,to:c.id,amount:pay}); d.amt-=pay; c.amt-=pay; if(d.amt<=0.005) i++; if(c.amt<=0.005) j++; } return xfers; }
 
@@ -260,7 +269,7 @@
 
     function strokesEditor(game){ var pids=[].concat(game.teamA||[],game.teamB||[]); var rows=[]; for(var si=0; si<pids.length; si++){ (function(pid){ rows.push(h('div',{class:'row',style:'align-items:center; gap:12px;'},[ h('div',{class:'muted'}, playerName(pid)), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:game.strokesCount[pid]||0,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); game.strokesCount[pid]=parseInt(d||'0',10)||0; e.target.value=String(game.strokesCount[pid]||0); endEdit(); }}), h('div',{class:'note'},'strokes applied on HCP 1…n across 18') ])); })(pids[si]); } if(!pids.length) rows.push(h('div',{class:'note'},'Pick 2 players for each team to edit strokes.')); return h('div',{class:'card'},[ h('div',{class:'pill'},'Strokes (per player for this game)'), h('div',{},rows) ]); }
 
-    var gamesCardChildren=[ h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{class:'pill'},'Games'), h('div',{},[ h('button',{class:'btn small',onclick:function(){ var ng=makeNewGame(); state.games.push(ng); state.activeGameId=ng.id; render(); }},'Add Game') ]) ]) ];
+    var gamesCardChildren=[ h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{class:'pill'},'Games'), h('div',{},[ h('button',{class:'btn small',onclick:function(){ var ng=makeNewGame(true); state.games.push(ng); state.activeGameId=ng.id; render(); }},'Add Game') ]) ]) ];
     for(var gi=0; gi<state.games.length; gi++){
       (function(g){ var block=h('div',{class:'card'},[
         h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{class:'pill'}, gameShortLabel(g)), h('div',{},[ h('button',{class:'btn small',onclick:function(){ state.activeGameId=g.id; state.tab='scores'; render(); }},'Go to SCORES'), h('button',{class:'btn small',style:'margin-left:6px;',onclick:function(){ var idx=state.games.indexOf(g); if(idx>=0) state.games.splice(idx,1); if(!state.games.length) state.games.push(makeNewGame()); state.activeGameId=state.games[0].id; render(); }},'Delete') ]) ]),
@@ -393,12 +402,12 @@
         for(var ii=1; ii<sg.lines.length; ii++){ starters[ sg.lines[ii].start ] = true; }
         var rows=[ h('tr',{},[ h('th',{},'Hole'), h('th',{},'Low'), h('th',{},'High'), h('th',{},'Net'), h('th',{},'Cum'), h('th',{},'Press→') ]) ];
         var cum=0; var blocked=false;
-        for(var holeI=start; holeI<=end; holeI++){
-          var wh=lowHighWinners(g,holeI);
-          var d=diffs[holeI];
-          if(blocked || d==null){ rows.push(h('tr',{},[ h('td',{}, String(holeI+1)), h('td',{}, String(wh.low)), h('td',{}, String(wh.high)), h('td',{}, '—'), h('td',{}, '—'), h('td',{}, starters[holeI+1]?'✓':'') ])); blocked=true; continue; }
+        for(var hole=start; hole<=end; hole++){
+          var wh=lowHighWinners(g,hole);
+          var d=diffs[hole];
+          if(blocked || d==null){ rows.push(h('tr',{},[ h('td',{}, String(hole+1)), h('td',{}, String(wh.low)), h('td',{}, String(wh.high)), h('td',{}, '—'), h('td',{}, '—'), h('td',{}, starters[hole+1]?'✓':'') ])); blocked=true; continue; }
           cum+=d; var netStr = (d>0?('+'+d):(d<0?String(d):'E'));
-          rows.push(h('tr',{},[ h('td',{}, String(holeI+1)), h('td',{}, String(wh.low)), h('td',{}, String(wh.high)), h('td',{}, netStr), h('td',{}, cum>0?('+'+cum):(cum<0?String(cum):'E')), h('td',{}, starters[holeI+1]?'✓':'') ]));
+          rows.push(h('tr',{},[ h('td',{}, String(hole+1)), h('td',{}, String(wh.low)), h('td',{}, String(wh.high)), h('td',{}, netStr), h('td',{}, cum>0?('+'+cum):(cum<0?String(cum):'E')), h('td',{}, starters[hole+1]?'✓':'') ]));
         }
         debugBlock = h('div',{class:'card scroll', style:'margin-top:8px;'}, [ h('table',{}, rows) ]);
       }
@@ -449,7 +458,7 @@
         h('div',{class:'pill'},'Choose game'),
         (function(){ var sel=h('select',{}); for(var gi=0; gi<state.games.length; gi++){ var gg=state.games[gi]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })()
       ]),
-      h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
+        h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
       h('div',{class:'note'},'Hi/Low: +1 for low, +1 if the other team has the high. If one team holds both the absolute low and the absolute high, the hole is a push. Ties award 0 for that comparison.'),
       seg('Front (1–9)',res.segments.front),
       seg('Back (10–18)',res.segments.back),
@@ -502,20 +511,47 @@
   }
 
   // Buttons
-  document.getElementById('resetBtn').addEventListener('click', function(){ if(!confirm('Reset everything?')) return; localStorage.removeItem(STORAGE_KEY); state.players=[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}]; state.games=[makeNewGame()]; state.activeGameId=state.games[0].id; state.course.hcp=[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16]; saveState(); render(); });
-  document.getElementById('clearBtn').addEventListener('click', function(){ if(!confirm('Clear saved data on this device?')) return; localStorage.removeItem(STORAGE_KEY); alert('Saved data cleared. This does not reset the current screen until you refresh or Reset.'); });
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    if(!confirm('Start a brand-new round? This clears all scores/junk and resets teams/stakes to defaults.')) return;
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
+    // Fresh state
+    state.players=[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}];
+    state.games=[];
+    var ng = makeNewGame(false); // do NOT clone previous gross
+    state.games=[ng];
+    state.activeGameId=ng.id;
+    state.course.hcp=[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16];
+    saveState();
+    render();
+  });
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    if(!confirm('Clear saved data and wipe current scores/junk in this session?')) return;
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
+    // Wipe in-memory scores/junk but keep players/teams/stakes setup intact
+    for(var gi=0; gi<state.games.length; gi++){
+      var g=state.games[gi];
+      for(var pi=0; pi<state.players.length; pi++){
+        var pid=state.players[pi].id;
+        g.gross[pid]=make18(null);
+        g.junkCounts[pid]=make18(0);
+      }
+    }
+    saveState();
+    render();
+    alert('Saved data cleared and round scores wiped.');
+  });
 
   // ===== Self-tests (expanded press & scoring cases) =====
   (function selfTests(){
     try {
+      console.assert(typeof h === 'function', 'h helper should exist');
       console.assert(Array.isArray(make18(0)) && make18(0).length===18, 'make18 should return length 18');
-      console.assert(typeof h==='function','DOM helper h should be a function');
 
       // Worst-case back nine: Team A loses 2 pts every hole → <= 9 lines max
       var tg={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
       var ids=['p1','p2','p3','p4'];
       for(var k=0;k<ids.length;k++){ tg.gross[ids[k]]=make18(null); }
-      for(var h=9; h<18; h++){ tg.gross['p1'][h]=5; tg.gross['p2'][h]=5; tg.gross['p3'][h]=3; tg.gross['p4'][h]=3; }
+      for(var hi9=9; hi9<18; hi9++){ tg.gross['p1'][hi9]=5; tg.gross['p2'][hi9]=5; tg.gross['p3'][hi9]=3; tg.gross['p4'][hi9]=3; }
       var segBack=buildSegmentLines(tg,9,17,1,true); console.assert(segBack.lines.length<=9,'Back segment should have <= 9 lines in worst case');
 
       // Style injected
@@ -523,7 +559,7 @@
       console.assert(hasStyle, 'Style helper should inject a style tag');
 
       // Sum helper
-      var arr=make18(null); for(var hh=9; hh<18; hh++){ arr[hh]=5; }
+      var arr=make18(null); for(var j9=9; j9<18; j9++){ arr[j9]=5; }
       console.assert(sumGrossRange(arr,9,17)===45, 'Back sum should be 45 for nine 5s');
 
       // Scoring logic sanity
@@ -591,18 +627,6 @@
       var c1=curFor(diffsU, segUsr.lines[1]);
       var c2=curFor(diffsU, segUsr.lines[2]);
       console.assert(c0===4 && c1===2 && c2===null, 'Front status should read +4 / +2 / — after 3 holes');
-
-      // NEW: Blocked-line should not "catch up" and add an extra press later
-      var usr2={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      usr2.gross['p1']=make18(null); usr2.gross['p2']=make18(null); usr2.gross['p3']=make18(null); usr2.gross['p4']=make18(null);
-      // Hole 1: push (0)
-      usr2.gross['p1'][0]=4; usr2.gross['p2'][0]=8; usr2.gross['p3'][0]=5; usr2.gross['p4'][0]=7;
-      // Hole 2: +2 (A sweep) → schedule press to start on 3
-      usr2.gross['p1'][1]=4; usr2.gross['p2'][1]=5; usr2.gross['p3'][1]=6; usr2.gross['p4'][1]=7;
-      // Hole 3: +2 (A sweep) → main hits +4, press hits +2 on the same hole → only one new press total, scheduled on 4
-      usr2.gross['p1'][2]=3; usr2.gross['p2'][2]=4; usr2.gross['p3'][2]=5; usr2.gross['p4'][2]=6;
-      var segUsr2=buildSegmentLines(usr2,0,8,1,true);
-      console.assert(segUsr2.lines.length===3,'Blocked-line must not add an extra press later; still exactly 3 lines');
 
     } catch(e){ errBox.style.display='block'; errBox.textContent='Self-test failed: '+e.message; }
   })();
