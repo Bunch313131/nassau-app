@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
-<title>Nassau – Hi/Low (Vanilla JS v1.6.10)</title>
+<title>Nassau – Hi/Low (Vanilla JS v1.6.11)</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -44,7 +44,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.10)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.11)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -291,7 +291,7 @@
     var gamesCard=h('div',{class:'card'},gamesCardChildren);
 
     var helpCard = h('div',{class:'card'},[
-      h('div',{class:'pill'},'Use on iPhone & Glitch'),
+      h('div',{class:'pill'},'Use on iPhone'),
       h('div',{class:'grid'},[
         h('div',{},[
           h('div',{class:'muted'},'Add to Home Screen (iPhone)'),
@@ -299,14 +299,6 @@
             h('li',{},'Open this page in Safari.'),
             h('li',{},'Share → Add to Home Screen.'),
             h('li',{},'Launch from your Home Screen (full-screen).')
-          ])
-        ]),
-        h('div',{},[
-          h('div',{class:'muted'},'Publish on Glitch (1 minute)'),
-          h('ol',{},[
-            h('li',{},'Go to glitch.com → New Project → Hello Webpage.'),
-            h('li',{},'Open index.html, Select All, Paste this file\'s HTML.'),
-            h('li',{},'Open the Live Site, then Share → Add to Home Screen.')
           ])
         ])
       ])
