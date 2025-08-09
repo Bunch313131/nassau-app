@@ -1,18 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="apple-mobile-web-app-title" content="Nassau Hi/Low by Bunch Bets" />
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-<link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152.png" />
-<link rel="apple-touch-icon" sizes="120x120" href="apple-touch-icon-120.png" />
-<link rel="icon" href="favicon.ico" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
-
+<meta name="apple-mobile-web-app-title" content="Nassau Hi/Low by Bunch Bets" />
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152.png" />
+<link rel="apple-touch-icon" sizes="120x120" href="apple-touch-icon-120.png" />
+<link rel="icon" href="favicon.ico" />
+<title>Nassau – Hi/Low (Vanilla JS v1.6.13)</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -49,7 +49,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.10)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.13)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -94,8 +94,66 @@
     }
     return g;
   }
+  function sanitizeGame(g){
+    if(!g || typeof g !== 'object') return makeNewGame(false);
+    // Teams
+    g.teamA = Array.isArray(g.teamA) ? g.teamA.slice(0,2) : [];
+    g.teamB = Array.isArray(g.teamB) ? g.teamB.slice(0,2) : [];
+    // Stakes & options
+    g.stakes = g.stakes || {front:2,back:4,overall:2};
+    g.stakes.front = isFinite(+g.stakes.front)? +g.stakes.front : 2;
+    g.stakes.back = isFinite(+g.stakes.back)? +g.stakes.back : 4;
+    g.stakes.overall = isFinite(+g.stakes.overall)? +g.stakes.overall : 2;
+    g.autoPress = g.autoPress || {front:true,back:true,overall:false};
+    g.autoPress.front = !!g.autoPress.front;
+    g.autoPress.back = !!g.autoPress.back;
+    g.autoPress.overall = !!g.autoPress.overall;
+    g.junkValue = g.junkValue || {front:1,back:2};
+    g.junkValue.front = isFinite(+g.junkValue.front)? +g.junkValue.front : 1;
+    g.junkValue.back = isFinite(+g.junkValue.back)? +g.junkValue.back : 2;
+    // Per-player fields
+    g.gross = g.gross || {};
+    g.junkCounts = g.junkCounts || {};
+    g.strokesCount = g.strokesCount || {};
+    for(var i=0;i<state.players.length;i++){
+      var pid=state.players[i].id;
+      // Gross scores → 18 entries of number or null
+      var ga = Array.isArray(g.gross[pid]) ? g.gross[pid].slice(0,18) : make18(null);
+      if(ga.length<18){ while(ga.length<18) ga.push(null); }
+      for(var k=0;k<18;k++){
+        var v = ga[k];
+        if(v==='' || v==null) ga[k]=null; else ga[k]=isFinite(+v)? +v : null;
+      }
+      g.gross[pid]=ga;
+      // Junk counts → 18 numbers
+      var ja = Array.isArray(g.junkCounts[pid]) ? g.junkCounts[pid].slice(0,18) : make18(0);
+      if(ja.length<18){ while(ja.length<18) ja.push(0); }
+      for(var j=0;j<18;j++){ var vv=ja[j]; ja[j]=isFinite(+vv)? +vv : 0; }
+      g.junkCounts[pid]=ja;
+      // Strokes
+      g.strokesCount[pid] = isFinite(+g.strokesCount[pid]) ? +g.strokesCount[pid] : 0;
+    }
+    // Id
+    g.id = g.id || uid();
+    return g;
+  }
+  function migrateState(){
+    // Course HCP
+    if(!state.course || !Array.isArray(state.course.hcp) || state.course.hcp.length!==18){
+      state.course = { hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16] };
+    } else {
+      for(var i=0;i<18;i++){ var n=+state.course.hcp[i]; state.course.hcp[i] = (isFinite(n)&&n>=1&&n<=18)? n : (i+1); }
+    }
+    // Games
+    if(!Array.isArray(state.games) || !state.games.length){ state.games=[makeNewGame(false)]; }
+    for(var gi=0; gi<state.games.length; gi++){ state.games[gi]=sanitizeGame(state.games[gi]); }
+    // Active game id
+    var hasActive=false; for(var gx=0; gx<state.games.length; gx++){ if(state.games[gx].id===state.activeGameId){ hasActive=true; break; } }
+    if(!hasActive){ state.activeGameId=state.games[0].id; }
+  }
   var __loaded = loadState();
-  if(!__loaded || !state.games || !state.games.length){ state.games=[makeNewGame()]; state.activeGameId=state.games[0].id; }
+  if(!__loaded || !state.games || !state.games.length){ state.games=[makeNewGame(false)]; state.activeGameId=state.games[0].id; }
+  migrateState();
 
   // ===== Mobile style helpers (with proper catch) =====
   try {
@@ -174,7 +232,7 @@
   function strokesFor(game,pid,hole){ var n=+game.strokesCount[pid]||0; if(!n) return 0; var base=Math.floor(n/18); var rem=n%18; var rank=+state.course.hcp[hole]||0; var extra=(rank>0&&rank<=rem)?1:0; return base+extra; }
   function computeNet(gross,s){ if(gross==null||!isFinite(gross)) return null; return gross - (isFinite(s||0)?(s||0):0); }
 
-  function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=0;i<=end-start;i++){ var v=arr&&arr[start+i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
+  function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=start;i<=end;i++){ var v=arr&&arr[i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
 
   // Hi/Low hole diff (A perspective).
   // Scoring rules:
@@ -221,12 +279,15 @@
           var cum=0, complete=true; for(var hi=L.start; hi<=hIdx; hi++){ var d=diffs[hi]; if(d==null){ complete=false; break; } cum+=d; }
           if(!complete || hIdx>=end) continue;
           var k=Math.floor(Math.abs(cum)/2);
-          if(k>L.pressesTriggered && !pressedThisHole){
-            var pressedBy=(cum<0?'A':'B');
-            var nextStart=hIdx+1;
-            var exists=lines.some(function(x){ return x.start===nextStart; });
-            if(!exists){ lines.push({start:nextStart,end:end,stake:stake,pressedBy:pressedBy,pressesTriggered:0}); pressedThisHole=true; }
-            L.pressesTriggered=k;
+          if(k>L.pressesTriggered){
+            if(!pressedThisHole){
+              var pressedBy=(cum<0?'A':'B');
+              var nextStart=hIdx+1;
+              var exists=lines.some(function(x){ return x.start===nextStart; });
+              if(!exists){ lines.push({start:nextStart,end:end,stake:stake,pressedBy:pressedBy,pressesTriggered:0}); pressedThisHole=true; }
+            }
+            // Always record threshold progress even if we didn't create a press this hole
+            L.pressesTriggered = k;
           }
         }
       }
@@ -296,7 +357,7 @@
     var gamesCard=h('div',{class:'card'},gamesCardChildren);
 
     var helpCard = h('div',{class:'card'},[
-      h('div',{class:'pill'},'Use on iPhone & Glitch'),
+      h('div',{class:'pill'},'Use on iPhone'),
       h('div',{class:'grid'},[
         h('div',{},[
           h('div',{class:'muted'},'Add to Home Screen (iPhone)'),
@@ -304,14 +365,6 @@
             h('li',{},'Open this page in Safari.'),
             h('li',{},'Share → Add to Home Screen.'),
             h('li',{},'Launch from your Home Screen (full-screen).')
-          ])
-        ]),
-        h('div',{},[
-          h('div',{class:'muted'},'Publish on Glitch (1 minute)'),
-          h('ol',{},[
-            h('li',{},'Go to glitch.com → New Project → Hello Webpage.'),
-            h('li',{},'Open index.html, Select All, Paste this file\'s HTML.'),
-            h('li',{},'Open the Live Site, then Share → Add to Home Screen.')
           ])
         ])
       ])
@@ -463,7 +516,7 @@
         h('div',{class:'pill'},'Choose game'),
         (function(){ var sel=h('select',{}); for(var gi=0; gi<state.games.length; gi++){ var gg=state.games[gi]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })()
       ]),
-        h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
+      h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
       h('div',{class:'note'},'Hi/Low: +1 for low, +1 if the other team has the high. If one team holds both the absolute low and the absolute high, the hole is a push. Ties award 0 for that comparison.'),
       seg('Front (1–9)',res.segments.front),
       seg('Back (10–18)',res.segments.back),
@@ -497,22 +550,39 @@
 
   function render(){
     if(__locks>0) return;
-    Tabs();
-    var root = document.getElementById('app');
-    root.innerHTML='';
-    var view;
-    if (typeof App === 'function') {
-      view = App();
-    } else {
-      if(state.tab==='setup') view = screenSetup();
-      else if(state.tab==='scores') view = screenScores();
-      else if(state.tab==='status') view = screenStatus();
-      else if(state.tab==='junk') view = screenJunk();
-      else if(state.tab==='game') view = screenGame();
-      else if(state.tab==='transactions') view = screenTransactions();
-      else view = screenGame();
+    try{
+      var root = document.getElementById('app');
+      var tabsHost = document.getElementById('tabs');
+      // Rebuild tabs safely
+      tabsHost.innerHTML='';
+      (function(){
+        function mk(id,label){ return h('button',{class:'btn '+(state.tab===id?'active primary':''), onclick:function(){ if(document.activeElement && document.activeElement.blur){ try{ document.activeElement.blur(); }catch(_e){} } __locks=0; state.tab=id; render(); }}, label); }
+        var node=h('div',{class:'tabs'},[
+          mk('setup','SETUP'), mk('scores','SCORES'), mk('junk','JUNK'), mk('status','STATUS'), mk('game','GAME'), mk('transactions','TRANSACTIONS')
+        ]);
+        tabsHost.appendChild(node);
+      })();
+
+      root.innerHTML='';
+      var view;
+      if (typeof App === 'function') {
+        view = App();
+      } else {
+        if(state.tab==='setup') view = screenSetup();
+        else if(state.tab==='scores') view = screenScores();
+        else if(state.tab==='status') view = screenStatus();
+        else if(state.tab==='junk') view = screenJunk();
+        else if(state.tab==='game') view = screenGame();
+        else if(state.tab==='transactions') view = screenTransactions();
+        else view = screenGame();
+      }
+      root.appendChild(view);
+      errBox.style.display='none';
+    } catch(e){
+      errBox.style.display='block';
+      errBox.textContent='Render failed: '+(e && e.message ? e.message : String(e));
+      console.error(e);
     }
-    root.appendChild(view);
   }
 
   // Buttons
@@ -574,3 +644,82 @@
       tSplit.gross['p1'][0]=4; tSplit.gross['p2'][0]=8; tSplit.gross['p3'][0]=5; tSplit.gross['p4'][0]=6;
       console.assert(holeDiff(tSplit,0)===0,'Split low/high should be 0');
       // Low tie only → ±1
+      var tLowTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      tLowTie.gross['p1']=make18(null); tLowTie.gross['p2']=make18(null); tLowTie.gross['p3']=make18(null); tLowTie.gross['p4']=make18(null);
+      // A: 4,6  B: 4,7 → low tie, A wins "high" point → +1
+      tLowTie.gross['p1'][0]=4; tLowTie.gross['p2'][0]=6; tLowTie.gross['p3'][0]=4; tLowTie.gross['p4'][0]=7;
+      console.assert(holeDiff(tLowTie,0)===1,'Low tie only should be +1 for Team A');
+      // High tie only → ±1
+      var tHighTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      tHighTie.gross['p1']=make18(null); tHighTie.gross['p2']=make18(null); tHighTie.gross['p3']=make18(null); tHighTie.gross['p4']=make18(null);
+      // A: 4,7  B: 5,7 → high tie, A wins low → +1
+      tHighTie.gross['p1'][0]=4; tHighTie.gross['p2'][0]=7; tHighTie.gross['p3'][0]=5; tHighTie.gross['p4'][0]=7;
+      console.assert(holeDiff(tHighTie,0)===1,'High tie only should be +1 for Team A');
+      // Both tie → 0
+      var tBothTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      tBothTie.gross['p1']=make18(null); tBothTie.gross['p2']=make18(null); tBothTie.gross['p3']=make18(null); tBothTie.gross['p4']=make18(null);
+      // A: 5,7  B: 5,7
+      tBothTie.gross['p1'][0]=5; tBothTie.gross['p2'][0]=7; tBothTie.gross['p3'][0]=5; tBothTie.gross['p4'][0]=7;
+      console.assert(holeDiff(tBothTie,0)===0,'Both tie should be 0');
+
+      // Press tests (line-agnostic):
+      // Sequence: +1, +1 (hit +2 → 1 press at next hole), then +2 (original hits +4 and press hits +2 on the same hole) → only ONE press created that hole
+      var tp={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      tp.gross['p1']=make18(null); tp.gross['p2']=make18(null); tp.gross['p3']=make18(null); tp.gross['p4']=make18(null);
+      // Hole 0: +1  (A low only) → A: 4,6  B: 5,6
+      tp.gross['p1'][0]=4; tp.gross['p2'][0]=6; tp.gross['p3'][0]=5; tp.gross['p4'][0]=6;
+      // Hole 1: +1  (A low only again)
+      tp.gross['p1'][1]=4; tp.gross['p2'][1]=6; tp.gross['p3'][1]=5; tp.gross['p4'][1]=6;
+      // Hole 2: +2  (A sweep) → original line to +4; press line (started at 2) to +2
+      tp.gross['p1'][2]=4; tp.gross['p2'][2]=5; tp.gross['p3'][2]=6; tp.gross['p4'][2]=7;
+      var segPress=buildSegmentLines(tp,0,8,1,true);
+      console.assert(segPress.lines.length===3,'Only one new press can be created on a single hole (expect 3 lines: main + press@2 + press@3)');
+      console.assert(segPress.lines[1].start===2 && segPress.lines[2].start===3,'Presses should start on holes 3 and 4 (1-indexed)');
+
+      // No press on last hole even if threshold reached
+      var tp2={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      tp2.gross['p1']=make18(null); tp2.gross['p2']=make18(null); tp2.gross['p3']=make18(null); tp2.gross['p4']=make18(null);
+      // Two holes only (0..1): +1, +1 → hits +2 at last hole → cannot start a press
+      tp2.gross['p1'][0]=4; tp2.gross['p2'][0]=6; tp2.gross['p3'][0]=5; tp2.gross['p4'][0]=6;
+      tp2.gross['p1'][1]=4; tp2.gross['p2'][1]=6; tp2.gross['p3'][1]=5; tp2.gross['p4'][1]=6;
+      var segShort=buildSegmentLines(tp2,0,1,1,true);
+      console.assert(segShort.lines.length===1,'No press can start on the last hole of a segment');
+
+      // USER SCENARIO (first three holes)
+      var usr={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      usr.gross['p1']=make18(null); usr.gross['p2']=make18(null); usr.gross['p3']=make18(null); usr.gross['p4']=make18(null);
+      // H1: P1=4,P2=6,P3=5,P4=5 → 0
+      usr.gross['p1'][0]=4; usr.gross['p2'][0]=6; usr.gross['p3'][0]=5; usr.gross['p4'][0]=5;
+      // H2: P1=4,P2=5,P3=5,P4=7 → +2
+      usr.gross['p1'][1]=4; usr.gross['p2'][1]=5; usr.gross['p3'][1]=5; usr.gross['p4'][1]=7;
+      // H3: P1=3,P2=4,P3=4,P4=5 → +2
+      usr.gross['p1'][2]=3; usr.gross['p2'][2]=4; usr.gross['p3'][2]=4; usr.gross['p4'][2]=5;
+      var segUsr=buildSegmentLines(usr,0,8,1,true);
+      console.assert(segUsr.lines.length===3,'After 3 holes: expect 3 lines (main + press@3 + press@4 scheduled)');
+      var diffsU=[]; for(var di=0; di<18; di++){ diffsU.push(holeDiff(usr,di)); }
+      function curFor(diffs,line){ var s=0, saw=false; for(var x=line.start; x<=line.end; x++){ var d=diffs[x]; if(d==null) break; saw=true; s+=d; } return saw? s : null; }
+      var c0=curFor(diffsU, segUsr.lines[0]);
+      var c1=curFor(diffsU, segUsr.lines[1]);
+      var c2=curFor(diffsU, segUsr.lines[2]);
+      console.assert(c0===4 && c1===2 && c2===null, 'Front status should read +4 / +2 / — after 3 holes');
+
+      // NEW: Blocked-line should not "catch up" and add an extra press later
+      var usr2={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
+      usr2.gross['p1']=make18(null); usr2.gross['p2']=make18(null); usr2.gross['p3']=make18(null); usr2.gross['p4']=make18(null);
+      // Hole 1: push (0)
+      usr2.gross['p1'][0]=4; usr2.gross['p2'][0]=8; usr2.gross['p3'][0]=5; usr2.gross['p4'][0]=7;
+      // Hole 2: +2 (A sweep) → schedule press to start on 3
+      usr2.gross['p1'][1]=4; usr2.gross['p2'][1]=5; usr2.gross['p3'][1]=6; usr2.gross['p4'][1]=7;
+      // Hole 3: +2 (A sweep) → main hits +4, press hits +2 on the same hole → only one new press total, scheduled on 4
+      usr2.gross['p1'][2]=3; usr2.gross['p2'][2]=4; usr2.gross['p3'][2]=5; usr2.gross['p4'][2]=6;
+      var segUsr2=buildSegmentLines(usr2,0,8,1,true);
+      console.assert(segUsr2.lines.length===3,'Blocked-line must not add an extra press later; still exactly 3 lines');
+
+    } catch(e){ errBox.style.display='block'; errBox.textContent='Self-test failed: '+e.message; }
+  })();
+
+  render();
+})();
+</script>
+</body>
+</html>
