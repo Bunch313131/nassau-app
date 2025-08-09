@@ -1,13 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
+<meta name="apple-mobile-web-app-title" content="Nassau Hi/Low by Bunch Bets" />
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152.png" />
+<link rel="apple-touch-icon" sizes="120x120" href="apple-touch-icon-120.png" />
+<link rel="icon" href="favicon.ico" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
-<title>Nassau – Hi/Low (powered by Bunch Bets)</title>
+
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -44,7 +49,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.11)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.10)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -291,7 +296,7 @@
     var gamesCard=h('div',{class:'card'},gamesCardChildren);
 
     var helpCard = h('div',{class:'card'},[
-      h('div',{class:'pill'},'Use on iPhone'),
+      h('div',{class:'pill'},'Use on iPhone & Glitch'),
       h('div',{class:'grid'},[
         h('div',{},[
           h('div',{class:'muted'},'Add to Home Screen (iPhone)'),
@@ -299,6 +304,14 @@
             h('li',{},'Open this page in Safari.'),
             h('li',{},'Share → Add to Home Screen.'),
             h('li',{},'Launch from your Home Screen (full-screen).')
+          ])
+        ]),
+        h('div',{},[
+          h('div',{class:'muted'},'Publish on Glitch (1 minute)'),
+          h('ol',{},[
+            h('li',{},'Go to glitch.com → New Project → Hello Webpage.'),
+            h('li',{},'Open index.html, Select All, Paste this file\'s HTML.'),
+            h('li',{},'Open the Live Site, then Share → Add to Home Screen.')
           ])
         ])
       ])
@@ -561,70 +574,3 @@
       tSplit.gross['p1'][0]=4; tSplit.gross['p2'][0]=8; tSplit.gross['p3'][0]=5; tSplit.gross['p4'][0]=6;
       console.assert(holeDiff(tSplit,0)===0,'Split low/high should be 0');
       // Low tie only → ±1
-      var tLowTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tLowTie.gross['p1']=make18(null); tLowTie.gross['p2']=make18(null); tLowTie.gross['p3']=make18(null); tLowTie.gross['p4']=make18(null);
-      // A: 4,6  B: 4,7 → low tie, A wins "high" point → +1
-      tLowTie.gross['p1'][0]=4; tLowTie.gross['p2'][0]=6; tLowTie.gross['p3'][0]=4; tLowTie.gross['p4'][0]=7;
-      console.assert(holeDiff(tLowTie,0)===1,'Low tie only should be +1 for Team A');
-      // High tie only → ±1
-      var tHighTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tHighTie.gross['p1']=make18(null); tHighTie.gross['p2']=make18(null); tHighTie.gross['p3']=make18(null); tHighTie.gross['p4']=make18(null);
-      // A: 4,7  B: 5,7 → high tie, A wins low → +1
-      tHighTie.gross['p1'][0]=4; tHighTie.gross['p2'][0]=7; tHighTie.gross['p3'][0]=5; tHighTie.gross['p4'][0]=7;
-      console.assert(holeDiff(tHighTie,0)===1,'High tie only should be +1 for Team A');
-      // Both tie → 0
-      var tBothTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tBothTie.gross['p1']=make18(null); tBothTie.gross['p2']=make18(null); tBothTie.gross['p3']=make18(null); tBothTie.gross['p4']=make18(null);
-      // A: 5,7  B: 5,7
-      tBothTie.gross['p1'][0]=5; tBothTie.gross['p2'][0]=7; tBothTie.gross['p3'][0]=5; tBothTie.gross['p4'][0]=7;
-      console.assert(holeDiff(tBothTie,0)===0,'Both tie should be 0');
-
-      // Press tests (line-agnostic):
-      // Sequence: +1, +1 (hit +2 → 1 press at next hole), then +2 (original hits +4 and press hits +2 on the same hole) → only ONE press created that hole
-      var tp={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tp.gross['p1']=make18(null); tp.gross['p2']=make18(null); tp.gross['p3']=make18(null); tp.gross['p4']=make18(null);
-      // Hole 0: +1  (A low only) → A: 4,6  B: 5,6
-      tp.gross['p1'][0]=4; tp.gross['p2'][0]=6; tp.gross['p3'][0]=5; tp.gross['p4'][0]=6;
-      // Hole 1: +1  (A low only again)
-      tp.gross['p1'][1]=4; tp.gross['p2'][1]=6; tp.gross['p3'][1]=5; tp.gross['p4'][1]=6;
-      // Hole 2: +2  (A sweep) → original line to +4; press line (started at 2) to +2
-      tp.gross['p1'][2]=4; tp.gross['p2'][2]=5; tp.gross['p3'][2]=6; tp.gross['p4'][2]=7;
-      var segPress=buildSegmentLines(tp,0,8,1,true);
-      console.assert(segPress.lines.length===3,'Only one new press can be created on a single hole (expect 3 lines: main + press@2 + press@3)');
-      console.assert(segPress.lines[1].start===2 && segPress.lines[2].start===3,'Presses should start on holes 3 and 4 (1-indexed)');
-
-      // No press on last hole even if threshold reached
-      var tp2={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tp2.gross['p1']=make18(null); tp2.gross['p2']=make18(null); tp2.gross['p3']=make18(null); tp2.gross['p4']=make18(null);
-      // Two holes only (0..1): +1, +1 → hits +2 at last hole → cannot start a press
-      tp2.gross['p1'][0]=4; tp2.gross['p2'][0]=6; tp2.gross['p3'][0]=5; tp2.gross['p4'][0]=6;
-      tp2.gross['p1'][1]=4; tp2.gross['p2'][1]=6; tp2.gross['p3'][1]=5; tp2.gross['p4'][1]=6;
-      var segShort=buildSegmentLines(tp2,0,1,1,true);
-      console.assert(segShort.lines.length===1,'No press can start on the last hole of a segment');
-
-      // USER SCENARIO (first three holes)
-      var usr={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      usr.gross['p1']=make18(null); usr.gross['p2']=make18(null); usr.gross['p3']=make18(null); usr.gross['p4']=make18(null);
-      // H1: P1=4,P2=6,P3=5,P4=5 → 0
-      usr.gross['p1'][0]=4; usr.gross['p2'][0]=6; usr.gross['p3'][0]=5; usr.gross['p4'][0]=5;
-      // H2: P1=4,P2=5,P3=5,P4=7 → +2
-      usr.gross['p1'][1]=4; usr.gross['p2'][1]=5; usr.gross['p3'][1]=5; usr.gross['p4'][1]=7;
-      // H3: P1=3,P2=4,P3=4,P4=5 → +2
-      usr.gross['p1'][2]=3; usr.gross['p2'][2]=4; usr.gross['p3'][2]=4; usr.gross['p4'][2]=5;
-      var segUsr=buildSegmentLines(usr,0,8,1,true);
-      console.assert(segUsr.lines.length===3,'After 3 holes: expect 3 lines (main + press@3 + press@4 scheduled)');
-      var diffsU=[]; for(var di=0; di<18; di++){ diffsU.push(holeDiff(usr,di)); }
-      function curFor(diffs,line){ var s=0, saw=false; for(var x=line.start; x<=line.end; x++){ var d=diffs[x]; if(d==null) break; saw=true; s+=d; } return saw? s : null; }
-      var c0=curFor(diffsU, segUsr.lines[0]);
-      var c1=curFor(diffsU, segUsr.lines[1]);
-      var c2=curFor(diffsU, segUsr.lines[2]);
-      console.assert(c0===4 && c1===2 && c2===null, 'Front status should read +4 / +2 / — after 3 holes');
-
-    } catch(e){ errBox.style.display='block'; errBox.textContent='Self-test failed: '+e.message; }
-  })();
-
-  render();
-})();
-</script>
-</body>
-</html>
