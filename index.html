@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152.png" />
 <link rel="apple-touch-icon" sizes="120x120" href="apple-touch-icon-120.png" />
 <link rel="icon" href="favicon.ico" />
-<title>Nassau – Hi/Low (Vanilla JS v1.6.13)</title>
+<title>Nassau – Hi/Low (Vanilla JS v1.6.16)</title>
 <style>
   :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -49,7 +49,7 @@
 <body>
 <header>
   <div class="row" style="align-items:center; justify-content:space-between;">
-    <h1>Nassau – Hi/Low (Vanilla JS v1.6.13)</h1>
+    <h1>Nassau – Hi/Low (Vanilla JS v1.6.16)</h1>
     <div class="row" style="align-items:center;">
       <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
     </div>
@@ -376,6 +376,18 @@
   function screenScores(){
     var g0=state.games[0];
 
+    // Find the last hole index where any player has entered a gross score
+    var lastHole=-1;
+    try{
+      for(var holeI=0; holeI<18; holeI++){
+        for(var pi=0; pi<state.players.length; pi++){
+          var pid=state.players[pi].id;
+          var v=g0 && g0.gross && g0.gross[pid] ? g0.gross[pid][holeI] : null;
+          if(v!=null && v!=='') lastHole=holeI; // keep max
+        }
+      }
+    }catch(_e){}
+
     function updateSums(pid){
       var arr=g0.gross[pid];
       var f=sumGrossRange(arr,0,8);
@@ -410,7 +422,7 @@
     }
 
     var head=[h('th',{class:'sticky'},'Player')];
-    for(var hi=0; hi<18; hi++){ head.push(h('th',{},String(hi+1))); }
+    for(var hi=0; hi<18; hi++){ head.push(h('th',{id:'col_h_'+hi},String(hi+1))); }
     head.push(h('th',{},'F'), h('th',{},'B'), h('th',{},'TOT'));
     var thead=h('thead',{},[ h('tr',{}, head) ]);
     var rows=[];
@@ -429,13 +441,31 @@
       })(state.players[i3]);
     }
     var tbody=h('tbody',{},rows);
-    return h('div',{},[
+
+    var scroller = h('div',{class:'card scroll', id:'scoresScroll'},[ h('table',{},[ thead, tbody ]) ]);
+    var root = h('div',{},[
       h('div',{class:'row',style:'align-items:center;'},[
         h('div',{class:'pill'},'Entering GROSS for all players'),
         h('div',{class:'note'},'Front/Back/TOT sums update after you leave a cell.')
       ]),
-      h('div',{class:'card scroll'},[ h('table',{},[ thead, tbody ]) ])
+      scroller
     ]);
+
+    // After render completes, scroll to last filled hole (if any)
+    setTimeout(function(){
+      try{
+        if(lastHole>=0){
+          var col = document.getElementById('col_h_'+lastHole);
+          var sc = document.getElementById('scoresScroll');
+          if(col && sc){
+            var target = Math.max(0, col.offsetLeft - sc.clientWidth*0.2);
+            sc.scrollLeft = target;
+          }
+        }
+      }catch(_e){}
+    }, 0);
+
+    return root;
   }
 
   function screenStatus(){
@@ -516,13 +546,13 @@
         h('div',{class:'pill'},'Choose game'),
         (function(){ var sel=h('select',{}); for(var gi=0; gi<state.games.length; gi++){ var gg=state.games[gi]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })()
       ]),
-      h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
-      h('div',{class:'note'},'Hi/Low: +1 for low, +1 if the other team has the high. If one team holds both the absolute low and the absolute high, the hole is a push. Ties award 0 for that comparison.'),
-      seg('Front (1–9)',res.segments.front),
-      seg('Back (10–18)',res.segments.back),
-      seg('Overall (1–18)',res.segments.overall),
-      h('div',{class:'card'},[ h('div',{class:'pill'}, 'Junk – Team A: '+fmt(res.junk.aVal)+' | Team B: '+fmt(res.junk.bVal)+' • Net to Team A: '+fmt(res.junk.netA) ) ]),
-      h('div',{class:'card'},[ h('div',{class:'pill'}, 'Game Total to Team A: '+fmt(res.totalPayoutA) ) ])
+        h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
+        h('div',{class:'note'},'Hi/Low: +1 for low, +1 if the other team has the high. If one team holds both the absolute low and the absolute high, the hole is a push. Ties award 0 for that comparison.'),
+        seg('Front (1–9)',res.segments.front),
+        seg('Back (10–18)',res.segments.back),
+        seg('Overall (1–18)',res.segments.overall),
+        h('div',{class:'card'},[ h('div',{class:'pill'}, 'Junk – Team A: '+fmt(res.junk.aVal)+' | Team B: '+fmt(res.junk.bVal)+' • Net to Team A: '+fmt(res.junk.netA) ) ]),
+        h('div',{class:'card'},[ h('div',{class:'pill'}, 'Game Total to Team A: '+fmt(res.totalPayoutA) ) ])
     ]);
   }
 
@@ -620,7 +650,8 @@
   (function selfTests(){
     try {
       console.assert(typeof h === 'function', 'h helper should exist');
-      console.assert(Array.isArray(make18(0)) && make18(0).length===18, 'make18 should return length 18');
+      var __tEl = h('div',{},'ok');
+      console.assert(__tEl && __tEl.nodeType===1 && __tEl.tagName==='DIV', 'h() should create elements');
 
       // Worst-case back nine: Team A loses 2 pts every hole → <= 9 lines max
       var tg={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
@@ -697,7 +728,7 @@
       var segUsr=buildSegmentLines(usr,0,8,1,true);
       console.assert(segUsr.lines.length===3,'After 3 holes: expect 3 lines (main + press@3 + press@4 scheduled)');
       var diffsU=[]; for(var di=0; di<18; di++){ diffsU.push(holeDiff(usr,di)); }
-      function curFor(diffs,line){ var s=0, saw=false; for(var x=line.start; x<=line.end; x++){ var d=diffs[x]; if(d==null) break; saw=true; s+=d; } return saw? s : null; }
+      function curFor(diffs,line){ var s=0; var saw=false; for(var x=line.start; x<=line.end; x++){ var d=diffs[x]; if(d==null) break; saw=true; s+=d; } return saw? s : null; }
       var c0=curFor(diffsU, segUsr.lines[0]);
       var c1=curFor(diffsU, segUsr.lines[1]);
       var c2=curFor(diffsU, segUsr.lines[2]);
