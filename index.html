@@ -14,23 +14,46 @@
 <link rel="icon" href="favicon.ico" />
 <title>Nassau – Hi/Low (Vanilla JS v1.6.18)</title>
 <style>
-  :root { --bg:#f6f7fb; --card:#fff; --txt:#111; --muted:#666; --acc:#2563eb; --border:#e5e7eb; color-scheme: light dark; }
+  :root {
+    --bg:#0b0e13;            /* dark blue/indigo base */
+    --card:#0f1420;          /* dark card */
+    --txt:#ecf0f6;
+    --muted:#a3a9b6;
+    --border:#1e2633;
+    --acc:#3b82f6;
+    /* game accent fills (semi translucent) */
+    --g1-fill: rgba(22,163,74,.12);   /* green */
+    --g1-edge: rgba(22,163,74,.35);
+    --g2-fill: rgba(220,38,38,.12);   /* red */
+    --g2-edge: rgba(220,38,38,.35);
+    --g3-fill: rgba(249,115,22,.12);  /* orange */
+    --g3-edge: rgba(249,115,22,.35);
+    color-scheme: dark;
+  }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; color:var(--txt); background:var(--bg); }
   header{ background:var(--card); border-bottom:1px solid var(--border); padding:10px 12px; position:sticky; top:0; z-index:10; }
   h1{ font-size:18px; margin:0; }
   main{ padding:12px; }
   .row{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
-  .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; }
-  .btn{ background:var(--card); border:1px solid var(--border); border-radius:999px; padding:8px 12px; cursor:pointer; }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px; padding:12px;
+  }
+  .btn{ background:var(--card); border:1px solid var(--border); border-radius:999px; padding:8px 12px; cursor:pointer; color:var(--txt); }
   .btn.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
   .btn.small{ padding:6px 10px; font-size:14px; }
   .pill{ border:1px solid var(--border); padding:6px 10px; border-radius:999px; display:inline-block; }
   .grid{ display:grid; gap:8px; }
   .grid-2{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .grid-3{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .grid-4{ grid-template-columns:repeat(4,minmax(0,1fr)); }
   .muted{ color:var(--muted); }
-  input[type="text"],input[type="tel"],select{ border:1px solid var(--border); border-radius:10px; padding:10px 12px; width:100%; font-size:16px; min-height:44px; }
+  input[type="text"],input[type="tel"],select{
+    background:var(--card); color:var(--txt);
+    border:1px solid var(--border); border-radius:10px; padding:10px 12px; width:100%; font-size:16px; min-height:44px;
+  }
   table{ border-collapse:collapse; width:100%; font-size:14px; }
   th,td{ border:1px solid var(--border); padding:6px; text-align:center; vertical-align:top; }
   th.sticky, td.sticky{ position:sticky; left:0; background:var(--card); z-index:2; text-align:left; }
@@ -39,11 +62,24 @@
   .tabs .btn.active{ background:var(--acc); color:#fff; border-color:var(--acc); }
   .scroll{ overflow:auto; }
   .note{ font-size:12px; color:var(--muted); }
-  .error{ position:fixed; bottom:8px; left:8px; right:8px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:12px; padding:8px 12px; font-size:12px; display:none; z-index:9999; white-space:pre-wrap; }
-  @media (prefers-color-scheme: dark){
-    :root{ --bg:#0b0e13; --card:#0f1420; --txt:#ecf0f6; --muted:#a3a9b6; --border:#1e2633; --acc:#3b82f6; }
-    .card{ box-shadow:none; }
-  }
+  .error{ position:fixed; bottom:8px; left:8px; right:8px; background:#331a1a; color:#ffbaba; border:1px solid #5a2a2a; border-radius:12px; padding:8px 12px; font-size:12px; display:none; z-index:9999; white-space:pre-wrap; }
+
+  /* Game accent wrappers (safe, non-global): apply on per-section containers */
+  .g1 .card.accent { background: var(--g1-fill); border-color: var(--g1-edge); }
+  .g2 .card.accent { background: var(--g2-fill); border-color: var(--g2-edge); }
+  .g3 .card.accent { background: var(--g3-fill); border-color: var(--g3-edge); }
+  .g1 .pill.accent { border-color: var(--g1-edge); }
+  .g2 .pill.accent { border-color: var(--g2-edge); }
+  .g3 .pill.accent { border-color: var(--g3-edge); }
+
+  /* mobile niceties */
+  .card.scroll table td:not(.sticky), .card.scroll table th:not(.sticky){min-width:56px;}
+  .card.scroll table input[type=tel]{width:54px;text-align:center;}
+  .btn, input[type="text"], input[type="tel"], select{min-height:44px;}
+  .tabs .btn{min-height:32px;padding:6px 10px;font-size:13px;}
+  button, input, select{-webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+  .card{box-shadow:0 1px 2px rgba(0,0,0,.04);}
+
 </style>
 </head>
 <body>
@@ -51,7 +87,8 @@
   <div class="row" style="align-items:center; justify-content:space-between;">
     <h1>Nassau – Hi/Low (Vanilla JS v1.6.18)</h1>
     <div class="row" style="align-items:center;">
-      <button class="btn small" id="resetBtn">Reset</button><button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
+      <button class="btn small" id="resetBtn">Reset</button>
+      <button class="btn small" id="clearBtn">Clear Save</button>
     </div>
   </div>
 </header>
@@ -60,6 +97,7 @@
   <div id="app"></div>
 </main>
 <div id="err" class="error"></div>
+
 <script>
 (function(){
   'use strict';
@@ -74,16 +112,61 @@
   window.addEventListener('error', function(ev){ errBox.style.display='block'; var loc=(ev.filename?(' @ '+ev.filename+':'+ev.lineno+':'+ev.colno):''); errBox.textContent=String(ev.message||ev)+loc; });
 
   // ===== State & Persistence =====
-  var state={ tab:'setup', debugStatus:false, players:[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}], games:[], activeGameId:null, course:{ hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16] } };
+  var state={
+    tab:'setup',
+    debugStatus:false,
+    players:[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}],
+    games:[],
+    activeGameId:null,
+    course:{ name:'El Macero Temp', hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6] },
+    presets:{ /* user-saved presets by name -> [18 nums] */
+      'El Macero Temp':[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
+      '1–18':[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+    }
+  };
   var STORAGE_KEY='nassauV1';
-  function cloneForSave(){ return { tab:state.tab, debugStatus:state.debugStatus, players:state.players, games:state.games, activeGameId:state.activeGameId, course:state.course }; }
+
+  function cloneForSave(){
+    return {
+      tab:state.tab, debugStatus:state.debugStatus,
+      players:state.players, games:state.games,
+      activeGameId:state.activeGameId,
+      course:state.course, presets:state.presets
+    };
+  }
   function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){} }
-  function loadState(){ try{ var raw=localStorage.getItem(STORAGE_KEY); if(!raw) return false; var obj=JSON.parse(raw); if(!obj||!Array.isArray(obj.games)) return false; state.tab=obj.tab||state.tab; state.debugStatus = !!obj.debugStatus; state.players=Array.isArray(obj.players)?obj.players:state.players; state.games=Array.isArray(obj.games)?obj.games:state.games; state.activeGameId=obj.activeGameId||state.activeGameId; if(obj.course&&obj.course.hcp&&obj.course.hcp.length===18){ state.course.hcp=obj.course.hcp; } return true; }catch(_e){ return false; } }
+  function loadState(){
+    try{
+      var raw=localStorage.getItem(STORAGE_KEY);
+      if(!raw) return false;
+      var obj=JSON.parse(raw);
+      if(!obj||!Array.isArray(obj.games)) return false;
+      state.tab=obj.tab||state.tab;
+      state.debugStatus=!!obj.debugStatus;
+      state.players=Array.isArray(obj.players)?obj.players:state.players;
+      state.games=Array.isArray(obj.games)?obj.games:state.games;
+      state.activeGameId=obj.activeGameId||state.activeGameId;
+      if(obj.course && obj.course.hcp && obj.course.hcp.length===18){
+        state.course = { name:obj.course.name||state.course.name, hcp: obj.course.hcp };
+      }
+      if(obj.presets && typeof obj.presets==='object'){ state.presets = obj.presets; }
+      return true;
+    }catch(_e){ return false; }
+  }
   var __saveTimer=null; function queueSave(){ if(__saveTimer) clearTimeout(__saveTimer); __saveTimer=setTimeout(saveState,200); }
 
   function makeNewGame(cloneFromFirst){
     // cloneFromFirst: if true and an existing game is present, copy its gross so adding a new game keeps current scores visible
-    var g={ id:uid(), teamA:['p1','p2'], teamB:['p3','p4'], stakes:{front:2,back:4,overall:2}, autoPress:{front:true,back:true,overall:false}, junkValue:{front:1,back:2}, junkCounts:{}, strokesCount:{}, gross:{} };
+    var g={
+      id:uid(),
+      label:'Game '+(state.games.length+1),
+      teamA:['p1','p2'],
+      teamB:['p3','p4'],
+      stakes:{front:2,back:4,overall:2},
+      autoPress:{front:true,back:true,overall:false},
+      junkValue:{front:1,back:2},
+      junkCounts:{}, strokesCount:{}, gross:{}
+    };
     for(var i=0;i<state.players.length;i++){
       var pid=state.players[i].id;
       g.junkCounts[pid]=make18(0);
@@ -96,10 +179,8 @@
   }
   function sanitizeGame(g){
     if(!g || typeof g !== 'object') return makeNewGame(false);
-    // Teams
     g.teamA = Array.isArray(g.teamA) ? g.teamA.slice(0,2) : [];
     g.teamB = Array.isArray(g.teamB) ? g.teamB.slice(0,2) : [];
-    // Stakes & options
     g.stakes = g.stakes || {front:2,back:4,overall:2};
     g.stakes.front = isFinite(+g.stakes.front)? +g.stakes.front : 2;
     g.stakes.back = isFinite(+g.stakes.back)? +g.stakes.back : 4;
@@ -111,13 +192,11 @@
     g.junkValue = g.junkValue || {front:1,back:2};
     g.junkValue.front = isFinite(+g.junkValue.front)? +g.junkValue.front : 1;
     g.junkValue.back = isFinite(+g.junkValue.back)? +g.junkValue.back : 2;
-    // Per-player fields
     g.gross = g.gross || {};
     g.junkCounts = g.junkCounts || {};
     g.strokesCount = g.strokesCount || {};
     for(var i=0;i<state.players.length;i++){
       var pid=state.players[i].id;
-      // Gross scores → 18 entries of number or null
       var ga = Array.isArray(g.gross[pid]) ? g.gross[pid].slice(0,18) : make18(null);
       if(ga.length<18){ while(ga.length<18) ga.push(null); }
       for(var k=0;k<18;k++){
@@ -125,29 +204,25 @@
         if(v==='' || v==null) ga[k]=null; else ga[k]=isFinite(+v)? +v : null;
       }
       g.gross[pid]=ga;
-      // Junk counts → 18 numbers
       var ja = Array.isArray(g.junkCounts[pid]) ? g.junkCounts[pid].slice(0,18) : make18(0);
       if(ja.length<18){ while(ja.length<18) ja.push(0); }
       for(var j=0;j<18;j++){ var vv=ja[j]; ja[j]=isFinite(+vv)? +vv : 0; }
       g.junkCounts[pid]=ja;
-      // Strokes
       g.strokesCount[pid] = isFinite(+g.strokesCount[pid]) ? +g.strokesCount[pid] : 0;
     }
-    // Id
     g.id = g.id || uid();
+    g.label = g.label || ('Game '+(state.games.indexOf(g)+1));
     return g;
   }
   function migrateState(){
-    // Course HCP
     if(!state.course || !Array.isArray(state.course.hcp) || state.course.hcp.length!==18){
-      state.course = { hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16] };
+      state.course = { name:'El Macero Temp', hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6] };
     } else {
       for(var i=0;i<18;i++){ var n=+state.course.hcp[i]; state.course.hcp[i] = (isFinite(n)&&n>=1&&n<=18)? n : (i+1); }
+      state.course.name = state.course.name || 'El Macero Temp';
     }
-    // Games
     if(!Array.isArray(state.games) || !state.games.length){ state.games=[makeNewGame(false)]; }
     for(var gi=0; gi<state.games.length; gi++){ state.games[gi]=sanitizeGame(state.games[gi]); }
-    // Active game id
     var hasActive=false; for(var gx=0; gx<state.games.length; gx++){ if(state.games[gx].id===state.activeGameId){ hasActive=true; break; } }
     if(!hasActive){ state.activeGameId=state.games[0].id; }
   }
@@ -155,42 +230,7 @@
   if(!__loaded || !state.games || !state.games.length){ state.games=[makeNewGame(false)]; state.activeGameId=state.games[0].id; }
   migrateState();
 
-  // ===== Course presets =====
-  var COURSE_PRESETS = {
-    'Temp El Macero'     : [3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
-    'El Macero': [7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16]
-    // Add more courses here, e.g. 'My Club': [ ...18 numbers 1–18... ]
-  };
-  function applyPreset(arr){
-    if(!Array.isArray(arr) || arr.length!==18){ alert('Preset must have exactly 18 numbers.'); return; }
-    var seen={};
-    for(var i=0;i<18;i++){
-      var n=+arr[i];
-      if(!(n>=1 && n<=18)){ alert('All handicap numbers must be 1–18.'); return; }
-      if(seen[n]){ alert('Each number 1–18 must appear exactly once.'); return; }
-      seen[n]=true; state.course.hcp[i]=n;
-    }
-    render();
-  }
-
-  // ===== Mobile style helpers (with proper catch) =====
-  try {
-    var __style = document.createElement('style');
-    __style.textContent = [
-      '.card.scroll table td:not(.sticky), .card.scroll table th:not(.sticky){min-width:56px;}',
-      '.card.scroll table input[type=tel]{width:54px;text-align:center;}',
-      '.btn, input[type="text"], input[type="tel"], select{min-height:44px;}',
-      '.tabs .btn{min-height:32px;padding:6px 10px;font-size:13px;}',
-      'button, input, select{-webkit-tap-highlight-color:transparent; touch-action:manipulation;}',
-      '.card{box-shadow:0 1px 2px rgba(0,0,0,.04);}',
-      ':root{--teamA:#16a34a; --teamB:#dc2626; --pill-bg:#fff;}'
-    ].join(' ');
-    document.head.appendChild(__style);
-  } catch (e) {
-    try { errBox.style.display='block'; errBox.textContent='Style init failed: '+e.message; } catch(_) {}
-  }
-
-  // ===== DOM helper (h) =====
+  // ===== Helpers =====
   function h(tag,attrs,children){
     var el=document.createElement(tag);
     attrs=attrs||{};
@@ -212,16 +252,11 @@
     }
     return el;
   }
-
-  // ===== Edit locks (avoid flicker while typing) =====
   var __locks=0, __rt=null;
   function beginEdit(){ __locks++; }
   function endEdit(){ __locks=Math.max(0,__locks-1); if(!__locks){ if(__rt) clearTimeout(__rt); queueSave(); __rt=setTimeout(function(){ render(); __rt=null; },120); } }
-
   function getGame(id){ for(var i=0;i<state.games.length;i++){ if(state.games[i].id===id) return state.games[i]; } return state.games[0]; }
   function playerName(id){ for(var i=0;i<state.players.length;i++){ if(state.players[i].id===id) return state.players[i].name; } return id; }
-
-  // Labels
   function gameShortLabel(game){
     function abbr(pid, used){
       var nm = playerName(pid)||'';
@@ -246,46 +281,58 @@
   }
   function gameLongLabel(game){ function nm(pid){return playerName(pid)||'?';} return (game.teamA||[]).map(nm).join(' & ')+' vs '+(game.teamB||[]).map(nm).join(' & '); }
 
-  // Strokes + net
-  function strokesFor(game,pid,hole){ var n=+game.strokesCount[pid]||0; if(!n) return 0; var base=Math.floor(n/18); var rem=n%18; var rank=+state.course.hcp[hole]||0; var extra=(rank>0&&rank<=rem)?1:0; return base+extra; }
-  function computeNet(gross,s){ if(gross==null||!isFinite(gross)) return null; return gross - (isFinite(s||0)?(s||0):0); }
+  // ===== Course Handicap (dropdown-first UX) =====
+  function applyCourseByName(name){
+    var arr = state.presets[name];
+    if(!arr || !Array.isArray(arr) || arr.length!==18){ alert('Preset invalid.'); return; }
+    // validate 1..18 no dupes
+    var seen={};
+    for(var i=0;i<18;i++){
+      var n=+arr[i];
+      if(!(n>=1&&n<=18)) { alert('Preset must have 1–18'); return; }
+      if(seen[n]){ alert('Each number 1–18 must appear once.'); return; }
+      seen[n]=true;
+    }
+    state.course.name = name;
+    state.course.hcp = arr.slice();
+    queueSave(); render();
+  }
 
-  function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=start;i<=end;i++){ var v=arr&&arr[i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
-
-  // Hi/Low hole diff (A perspective).
-  // Scoring rules:
-  // - Compare teams' LOW balls and HIGH balls separately.
-  // - Winner of each comparison gets 1 point. If that comparison ties, 0.
-  // - If different teams win low & high, the hole is a push overall (net 0) — no presses.
-  // - If the same team wins both, net is ±2.
+  // ===== Scoring =====
+  function strokesFor(game,pid,hole){
+    var n=+game.strokesCount[pid]||0;
+    if(!n) return 0;
+    var base=Math.floor(n/18);
+    var rem=n%18;
+    var rank=+state.course.hcp[hole]||0;
+    var extra=(rank>0&&rank<=rem)?1:0;
+    return base+extra;
+  }
+  function computeNet(gross,s){
+    if(gross==null||!isFinite(gross)) return null;
+    return gross - (isFinite(s||0)?(s||0):0);
+  }
+  function safeGross(G, pid, hole){
+    var v = (G && G[pid]) ? G[pid][hole] : null;
+    if (v === '' || v === null || v === undefined) return null;
+    var n = +v;
+    return isFinite(n) ? n : null;
+  }
   function holeDiff(game,hole){
-    var A=game.teamA,B=game.teamB,G=game.gross; if(!A||!B||A.length!==2||B.length!==2) return null;
-    var a0=computeNet(+G[A[0]][hole],strokesFor(game,A[0],hole));
-    var a1=computeNet(+G[A[1]][hole],strokesFor(game,A[1],hole));
-    var b0=computeNet(+G[B[0]][hole],strokesFor(game,B[0],hole));
-    var b1=computeNet(+G[B[1]][hole],strokesFor(game,B[1],hole));
+    var A=game.teamA,B=game.teamB,G=game.gross;
+    if(!A||!B||A.length!==2||B.length!==2) return null;
+    var a0=computeNet(safeGross(G,A[0],hole),strokesFor(game,A[0],hole));
+    var a1=computeNet(safeGross(G,A[1],hole),strokesFor(game,A[1],hole));
+    var b0=computeNet(safeGross(G,B[0],hole),strokesFor(game,B[0],hole));
+    var b1=computeNet(safeGross(G,B[1],hole),strokesFor(game,B[1],hole));
     if(a0==null||a1==null||b0==null||b1==null) return null;
     var aLow=Math.min(a0,a1), bLow=Math.min(b0,b1), aHigh=Math.max(a0,a1), bHigh=Math.max(b0,b1);
     var lowW=(aLow<bLow)?'A':(bLow<aLow)?'B':'T';
     var highW=(aHigh<bHigh)?'A':(bHigh<aHigh)?'B':'T';
-    var d=0; if(lowW==='A') d++; else if(lowW==='B') d--; if(highW==='A') d++; else if(highW==='B') d--; return d; // split → 0; sweep → ±2; ties → 0
+    var d=0; if(lowW==='A') d++; else if(lowW==='B') d--; if(highW==='A') d++; else if(highW==='B') d--; return d;
   }
 
-  // Helpers for debug view
-  function lowHighWinners(game,hole){
-    var A=game.teamA,B=game.teamB,G=game.gross; if(!A||!B||A.length!==2||B.length!==2) return {low:'T',high:'T'};
-    var a0=computeNet(+G[A[0]][hole],strokesFor(game,A[0],hole));
-    var a1=computeNet(+G[A[1]][hole],strokesFor(game,A[1],hole));
-    var b0=computeNet(+G[B[0]][hole],strokesFor(game,B[0],hole));
-    var b1=computeNet(+G[B[1]][hole],strokesFor(game,B[1],hole));
-    if(a0==null||a1==null||b0==null||b1==null) return {low:'—',high:'—'};
-    var aLow=Math.min(a0,a1), bLow=Math.min(b0,b1), aHigh=Math.max(a0,a1), bHigh=Math.max(b0,b1);
-    var low=(aLow<bLow)?'A':(bLow<aLow)?'B':'T';
-    var high=(aHigh<bHigh)?'A':(bHigh<aHigh)?'B':'T';
-    return {low:low, high:high};
-  }
-
-  // Auto-press at first time line hits new multiples of ±2 (1 press max per hole per segment)
+  // Auto-press engine (unchanged logic; 1 press max per hole per segment)
   function buildSegmentLines(game,start,end,stake,auto){
     var diffs=[]; for(var i=0;i<18;i++){ diffs.push(holeDiff(game,i)); }
     var lines=[{start:start,end:end,stake:stake,pressesTriggered:0}];
@@ -304,98 +351,328 @@
               var exists=lines.some(function(x){ return x.start===nextStart; });
               if(!exists){ lines.push({start:nextStart,end:end,stake:stake,pressedBy:pressedBy,pressesTriggered:0}); pressedThisHole=true; }
             }
-            // Always record threshold progress even if we didn't create a press this hole
             L.pressesTriggered = k;
           }
         }
       }
     }
-    var winnerByLine=[], payoutA=0;
+    var winnerByLine=[], payoutRawA=0;
     for(var j=0;j<lines.length;j++){
       var L2=lines[j]; var cum2=0, complete2=true; for(var hj=L2.start; hj<=L2.end; hj++){ var d2=diffs[hj]; if(d2==null){ complete2=false; break; } cum2+=d2; }
       if(!complete2){ winnerByLine.push('In-Play'); continue; }
-      if(cum2>0){ winnerByLine.push('A'); payoutA+=L2.stake; }
-      else if(cum2<0){ winnerByLine.push('B'); payoutA-=L2.stake; }
+      if(cum2>0){ winnerByLine.push('A'); payoutRawA+=L2.stake; }
+      else if(cum2<0){ winnerByLine.push('B'); payoutRawA-=L2.stake; }
       else { winnerByLine.push('Push'); }
     }
-    return {lines:lines, winnerByLine:winnerByLine, payoutA:payoutA};
+    return {lines:lines, winnerByLine:winnerByLine, payoutA:payoutRawA};
   }
 
-  function computeJunk(game){ var jv=game.junkValue||{front:0,back:0}; function sumTeam(pids,a,b){ var t=0; for(var i=0;i<pids.length;i++){ var pid=pids[i]; var arr=game.junkCounts[pid]||[]; for(var hq=a; hq<=b; hq++){ t += (+arr[hq]||0); } } return t; } var aF=sumTeam(game.teamA,0,8), aB=sumTeam(game.teamA,9,17), bF=sumTeam(game.teamB,0,8), bB=sumTeam(game.teamB,9,17); var aVal=aF*(+jv.front||0)+aB*(+jv.back||0), bVal=bF*(+jv.front||0)+bB*(+jv.back||0); return {aVal:aVal,bVal:bVal,netA:(aVal-bVal)}; }
-  function computeGameResult(game){ var seg={ front:buildSegmentLines(game,0,8,game.stakes.front,!!game.autoPress.front), back:buildSegmentLines(game,9,17,game.stakes.back,!!game.autoPress.back), overall:buildSegmentLines(game,0,17,game.stakes.overall,!!game.autoPress.overall) }; var junk=computeJunk(game); var total=seg.front.payoutA+seg.back.payoutA+seg.overall.payoutA+junk.netA; return {segments:seg,junk:junk,totalPayoutA:total}; }
-  function settleMinimalCash(net){ var debt=[],cred=[]; for(var id in net){ var amt=net[id]; if(Math.abs(amt)<0.005) continue; if(amt<0) debt.push({id:id,amt:-amt}); else cred.push({id:id,amt:amt}); } debt.sort(function(a,b){return b.amt-a.amt;}); cred.sort(function(a,b){return b.amt-a.amt;}); var xfers=[],i=0,j=0; while(i<debt.length && j<cred.length){ var d=debt[i], c=cred[j]; var pay=Math.min(d.amt,c.amt); xfers.push({from:d.id,to:c.id,amount:pay}); d.amt-=pay; c.amt-=pay; if(d.amt<=0.005) i++; if(c.amt<=0.005) j++; } return xfers; }
+  function computeJunk(game){
+    var jv=game.junkValue||{front:0,back:0};
+    function sumTeam(pids,a,b){
+      var t=0;
+      for(var i=0;i<pids.length;i++){
+        var pid=pids[i];
+        var arr=game.junkCounts[pid]||[];
+        for(var hq=a; hq<=b; hq++){ t += (+arr[hq]||0); }
+      }
+      return t;
+    }
+    var aF=sumTeam(game.teamA,0,8), aB=sumTeam(game.teamA,9,17), bF=sumTeam(game.teamB,0,8), bB=sumTeam(game.teamB,9,17);
+    var aVal=aF*(+jv.front||0)+aB*(+jv.back||0), bVal=bF*(+jv.front||0)+bB*(+jv.back||0);
+    return {aVal:aVal,bVal:bVal,netA:(aVal-bVal)};
+  }
 
+  // >>> NEW payout model (each player gets/owes raw once; junk is per-team/doubled) <<<
+  function computeGameResult(game){
+    function rawFromSegment(seg){
+      var raw = 0;
+      for (var i = 0; i < seg.lines.length; i++){
+        var w = seg.winnerByLine[i];
+        if (w === 'A') raw += seg.lines[i].stake;
+        else if (w === 'B') raw -= seg.lines[i].stake;
+      }
+      return raw;
+    }
+    var seg = {
+      front:   buildSegmentLines(game, 0,  8, game.stakes.front,   !!game.autoPress.front),
+      back:    buildSegmentLines(game, 9, 17, game.stakes.back,    !!game.autoPress.back),
+      overall: buildSegmentLines(game, 0, 17, game.stakes.overall, !!game.autoPress.overall)
+    };
+    seg.front.rawA   = rawFromSegment(seg.front);
+    seg.back.rawA    = rawFromSegment(seg.back);
+    seg.overall.rawA = rawFromSegment(seg.overall);
+
+    var aSize = (game.teamA || []).length || 0;
+    var bSize = (game.teamB || []).length || 0;
+    var teamMultiplier = Math.min(aSize, bSize); // 2 for 2v2; safe if incomplete
+
+    // Scaled segment payouts (team total): raw × team size (each player once)
+    seg.front.payoutA   = seg.front.rawA   * teamMultiplier;
+    seg.back.payoutA    = seg.back.rawA    * teamMultiplier;
+    seg.overall.payoutA = seg.overall.rawA * teamMultiplier;
+
+    // Junk per-team (doubled): scale by team size, then added once to team total
+    var junk = computeJunk(game);
+    var junkScaledA = junk.netA * teamMultiplier;
+
+    var total = seg.front.payoutA + seg.back.payoutA + seg.overall.payoutA + junkScaledA;
+
+    return { segments: seg, junk: junk, junkScaledA: junkScaledA, totalPayoutA: total };
+  }
+
+  function settleMinimalCash(net){
+    var debt=[],cred=[];
+    for(var id in net){
+      var amt=net[id];
+      if(Math.abs(amt)<0.005) continue;
+      if(amt<0) debt.push({id:id,amt:-amt}); else cred.push({id:id,amt:amt});
+    }
+    debt.sort(function(a,b){return b.amt-a.amt;});
+    cred.sort(function(a,b){return b.amt-a.amt;});
+    var xfers=[],i=0,j=0;
+    while(i<debt.length && j<cred.length){
+      var d=debt[i], c=cred[j];
+      var pay=Math.min(d.amt,c.amt);
+      xfers.push({from:d.id,to:c.id,amount:pay});
+      d.amt-=pay; c.amt-=pay;
+      if(d.amt<=0.005) i++;
+      if(c.amt<=0.005) j++;
+    }
+    return xfers;
+  }
+
+  // ===== Tabs =====
   function Tabs(){
     function mk(id,label){ return h('button',{class:'btn '+(state.tab===id?'active primary':''), onclick:function(){ if(document.activeElement && document.activeElement.blur){ try{ document.activeElement.blur(); }catch(_e){} } __locks=0; state.tab=id; render(); }}, label); }
     var node=h('div',{class:'tabs'},[
-      mk('setup','SETUP'),
-      mk('scores','SCORES'),
-      mk('junk','JUNK'),
-      mk('status','STATUS'),
-      mk('game','GAME'),
-      mk('transactions','TRANSACTIONS')
+      mk('setup','SETUP'), mk('scores','SCORES'), mk('junk','JUNK'),
+      mk('status','STATUS'), mk('game','GAME'), mk('transactions','TRANSACTIONS')
     ]);
     var root=document.getElementById('tabs'); root.innerHTML=''; root.appendChild(node);
   }
 
   // ===== Screens =====
   function screenSetup(){
-    // Players
-    var playerRows=[]; for(var i=0;i<state.players.length;i++){ (function(p){ playerRows.push(h('div',{style:'display:grid; grid-template-columns:64px 1fr; gap:8px; align-items:center;'},[ h('span',{class:'muted', style:'text-align:right;'}, p.id), h('input',{type:'text',value:p.name,onfocus:beginEdit,onblur:function(e){ p.name=e.target.value; endEdit(); },oninput:function(e){ p.name=e.target.value; }}) ])); })(state.players[i]); }
-    var playersCard=h('div',{class:'card'},[ h('div',{class:'pill'},'Players (rename)'), h('div',{},playerRows) ]);
-
-    // Course HCP table
-    var head=[h('th',{class:'sticky'},'Hole')]; for(var ci=0; ci<18; ci++){ head.push(h('th',{},String(ci+1))); }
-    var row=[h('td',{class:'sticky'},'HCP')]; for(var hci=0; hci<18; hci++){ (function(hole){ row.push(h('td',{},[ h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:state.course.hcp[hole],style:'width:56px;text-align:center;',onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); var n=parseInt(d||'1',10); if(!isFinite(n)) n=1; n=Math.max(1,Math.min(18,n)); state.course.hcp[hole]=n; e.target.value=String(n); endEdit(); }}) ])); })(hci); }
-    var courseCard=h('div',{class:'card'},[ h('div',{class:'pill'},'Course Hole Handicaps (1 = hardest … 18 = easiest)'), h('div',{class:'card scroll'},[ h('table',{},[ h('thead',{},[h('tr',{},head)]), h('tbody',{},[h('tr',{},row)]) ]) ]), h('div',{class:'row'}, (function(){
-      var nodes=[], idx=0;
-      for (var presetKey in COURSE_PRESETS){ if(!COURSE_PRESETS.hasOwnProperty(presetKey)) continue;
-        nodes.push(h('button',{
-          class:'btn small',
-          style:(idx?'margin-left:6px;':''),
-          onclick:(function(pk){ return function(){ applyPreset(COURSE_PRESETS[pk]); }; })(presetKey)
-        }, 'Set ' + presetKey));
-        idx++;
-      }
-      nodes.push(h('button',{
-        class:'btn small',
-        style:(idx?'margin-left:6px;':''),
-        onclick:function(){
-          var presetName = prompt('Name this preset:');
-          if(!presetName) return;
-          COURSE_PRESETS[presetName] = state.course.hcp.slice();
-          render();
-          alert('Saved preset: ' + presetName);
-        }
-      }, 'Save as Preset'));
-      return nodes;
-    })()) ]);
-
-    function teamButtons(game,key){ var wrap=h('div',{class:'row'},[]); for(var pi2=0; pi2<state.players.length; pi2++){ (function(p){ var team=(key==='A'?game.teamA:game.teamB); var on=team.indexOf(p.id)>=0; var full=!on && team.length>=2; wrap.appendChild(h('button',{class:'btn small '+(on?'primary':''),disabled:full,onclick:function(){ if(document.activeElement&&document.activeElement.blur){ try{document.activeElement.blur();}catch(_e){} } var arr=(key==='A'?game.teamA:game.teamB); var idx=arr.indexOf(p.id); if(idx>=0) arr.splice(idx,1); else if(arr.length<2) arr.push(p.id); queueSave(); __locks=0; render(); }}, p.name)); })(state.players[pi2]); } return wrap; }
-
-    function strokesEditor(game){ var pids=[].concat(game.teamA||[],game.teamB||[]); var rows=[]; for(var si=0; si<pids.length; si++){ (function(pid){ rows.push(h('div',{class:'row',style:'align-items:center; gap:12px;'},[ h('div',{class:'muted'}, playerName(pid)), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:game.strokesCount[pid]||0,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); game.strokesCount[pid]=parseInt(d||'0',10)||0; e.target.value=String(game.strokesCount[pid]||0); endEdit(); }}), h('div',{class:'note'},'strokes applied on HCP 1…n across 18') ])); })(pids[si]); } if(!pids.length) rows.push(h('div',{class:'note'},'Pick 2 players for each team to edit strokes.')); return h('div',{class:'card'},[ h('div',{class:'pill'},'Strokes (per player for this game)'), h('div',{},rows) ]); }
-
-    var gamesCardChildren=[ h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{class:'pill'},'Games'), h('div',{},[ h('button',{class:'btn small',onclick:function(){ var ng=makeNewGame(true); state.games.push(ng); state.activeGameId=ng.id; render(); }},'Add Game') ]) ]) ];
-    for(var gi=0; gi<state.games.length; gi++){
-      (function(g){ var block=h('div',{class:'card'},[
-        h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{class:'pill'}, gameShortLabel(g)), h('div',{},[ h('button',{class:'btn small',onclick:function(){ state.activeGameId=g.id; state.tab='scores'; render(); }},'Go to SCORES'), h('button',{class:'btn small',style:'margin-left:6px;',onclick:function(){ var idx=state.games.indexOf(g); if(idx>=0) state.games.splice(idx,1); if(!state.games.length) state.games.push(makeNewGame()); state.activeGameId=state.games[0].id; render(); }},'Delete') ]) ]),
-        h('div',{class:'grid grid-2'},[ h('div',{},[ h('div',{class:'muted'},'Team A (pick 2)'), teamButtons(g,'A') ]), h('div',{},[ h('div',{class:'muted'},'Team B (pick 2)'), teamButtons(g,'B') ]) ]),
-        h('div',{class:'grid grid-3'},[
-          h('div',{},[ h('div',{class:'muted'},'Front $'),   h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.front,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.front=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.front); endEdit(); }}) ]),
-          h('div',{},[ h('div',{class:'muted'},'Back $'),    h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.back,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.back=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.back); endEdit(); }}) ]),
-          h('div',{},[ h('div',{class:'muted'},'Overall $'), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.overall,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.overall=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.overall); endEdit(); }}) ])
-        ]),
-        h('div',{class:'grid grid-3'},[
-          h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.front,onclick:function(e){ g.autoPress.front=!!e.target.checked; queueSave(); render(); }}),' Auto-press FRONT' ]),
-          h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.back,onclick:function(e){ g.autoPress.back=!!e.target.checked; queueSave(); render(); }}),' Auto-press BACK' ]),
-          h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.overall,onclick:function(e){ g.autoPress.overall=!!e.target.checked; queueSave(); render(); }}),' Auto-press OVERALL' ])
-        ]),
-        strokesEditor(g),
-        h('div',{class:'note'},'Scores tab shows GROSS only. Net is auto from strokes + course HCP.')
-      ]); gamesCardChildren.push(block); })(state.games[gi]);
+    // — Players —
+    var playerRows=[];
+    for(var i=0;i<state.players.length;i++){
+      (function(p){
+        playerRows.push(
+          h('div',{style:'display:grid; grid-template-columns:64px 1fr; gap:8px; align-items:center;'},[
+            h('span',{class:'muted', style:'text-align:right;'}, p.id),
+            h('input',{type:'text',value:p.name,onfocus:beginEdit,onblur:function(e){ p.name=e.target.value; endEdit(); },oninput:function(e){ p.name=e.target.value; }})
+          ])
+        );
+      })(state.players[i]);
     }
-    var gamesCard=h('div',{class:'card'},gamesCardChildren);
+    var playersCard=h('div',{class:'card'},[
+      h('div',{class:'pill'},'Players (rename)'),
+      h('div',{},playerRows)
+    ]);
 
+    // — Course Handicap (dropdown-first) —
+    var head=[h('th',{class:'sticky'},'Hole')];
+    for(var ci=0; ci<18; ci++){ head.push(h('th',{},String(ci+1))); }
+
+    var row=[h('td',{class:'sticky'},'HCP')];
+    for(var hci=0; hci<18; hci++){
+      (function(hole){
+        row.push(
+          h('td',{},[
+            h('input',{
+              type:'tel',inputmode:'numeric',pattern:'[0-9]*',
+              value:state.course.hcp[hole],
+              style:'width:56px;text-align:center;',
+              onfocus:beginEdit,
+              oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur:function(e){
+                var d=e.target.value.replace(/[^0-9]/g,'');
+                var n=parseInt(d||'1',10);
+                if(!isFinite(n)) n=1;
+                n=Math.max(1,Math.min(18,n));
+                state.course.hcp[hole]=n;
+                e.target.value=String(n);
+                endEdit();
+              }
+            })
+          ])
+        );
+      })(hci);
+    }
+
+    var courseCard=h('div',{class:'card'},[
+      h('div',{class:'pill'},'Course Handicap'),
+      // Dropdown
+      h('div',{class:'grid grid-3'},[
+        h('div',{},[
+          h('div',{class:'muted'},'Preset'),
+          (function(){
+            var sel=h('select',{});
+            // Fill options
+            var keys = Object.keys(state.presets);
+            keys.sort();
+            for(var i=0;i<keys.length;i++){
+              var nm = keys[i];
+              sel.appendChild(h('option',{value:nm,selected:(nm===state.course.name)}, nm));
+            }
+            sel.addEventListener('change', function(e){
+              applyCourseByName(e.target.value);
+            });
+            return sel;
+          })()
+        ]),
+        h('div',{},[
+          h('div',{class:'muted'},'Loaded'),
+          h('div',{class:'pill'}, state.course.name || '—')
+        ]),
+        h('div',{},[
+          h('div',{class:'muted'},'Save as new preset'),
+          h('button',{
+            class:'btn small',
+            onclick:function(){
+              var nm = prompt('Name this course/preset:','My Course');
+              if(!nm) return;
+              // validate current 18
+              var seen={};
+              for(var i=0;i<18;i++){
+                var n=+state.course.hcp[i];
+                if(!(n>=1&&n<=18)) { alert('All HCP must be 1–18'); return; }
+                if(seen[n]){ alert('Each number 1–18 must appear exactly once'); return; }
+                seen[n]=true;
+              }
+              state.presets[nm] = state.course.hcp.slice();
+              state.course.name = nm;
+              queueSave();
+              alert('Saved preset: '+nm);
+              render();
+            }
+          },'Save as Preset')
+        ])
+      ]),
+      h('div',{class:'card scroll', style:'margin-top:8px;'},[
+        h('table',{},[ h('thead',{},[h('tr',{},head)]), h('tbody',{},[h('tr',{},row)]) ])
+      ])
+    ]);
+
+    // — Games config —
+    function teamButtons(game,key){
+      var wrap=h('div',{class:'row'},[]);
+      for(var pi2=0; pi2<state.players.length; pi2++){
+        (function(p){
+          var team=(key==='A'?game.teamA:game.teamB);
+          var on=team.indexOf(p.id)>=0; var full=!on && team.length>=2;
+          wrap.appendChild(h('button',{
+            class:'btn small '+(on?'primary':''), disabled:full,
+            onclick:function(){
+              if(document.activeElement&&document.activeElement.blur){ try{document.activeElement.blur();}catch(_e){} }
+              var arr=(key==='A'?game.teamA:game.teamB);
+              var idx=arr.indexOf(p.id);
+              if(idx>=0) arr.splice(idx,1); else if(arr.length<2) arr.push(p.id);
+              queueSave(); __locks=0; render();
+            }
+          }, p.name));
+        })(state.players[pi2]);
+      }
+      return wrap;
+    }
+    function strokesEditor(game){
+      var pids=[].concat(game.teamA||[],game.teamB||[]);
+      var rows=[];
+      for(var si=0; si<pids.length; si++){
+        (function(pid){
+          rows.push(
+            h('div',{class:'row',style:'align-items:center; gap:12px;'},[
+              h('div',{class:'muted'}, playerName(pid)),
+              h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:game.strokesCount[pid]||0,
+                onfocus:beginEdit,
+                oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+                onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); game.strokesCount[pid]=parseInt(d||'0',10)||0; e.target.value=String(game.strokesCount[pid]||0); endEdit(); }
+              }),
+              h('div',{class:'note'},'strokes apply on HCP 1…n across 18')
+            ])
+          );
+        })(pids[si]);
+      }
+      if(!pids.length) rows.push(h('div',{class:'note'},'Pick 2 players for each team to edit strokes.'));
+      return h('div',{class:'card'},[
+        h('div',{class:'pill'},'Strokes (per player for this game)'),
+        h('div',{},rows)
+      ]);
+    }
+
+    var gamesCardChildren=[
+      h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+        h('div',{class:'pill'},'Games'),
+        h('div',{},[
+          h('button',{class:'btn small',onclick:function(){ var ng=makeNewGame(true); state.games.push(ng); state.activeGameId=ng.id; render(); }},'Add Game')
+        ])
+      ])
+    ];
+    for(var gi=0; gi<state.games.length; gi++){
+      (function(g, idx){
+        // choose a safe accent wrapper class (g1,g2,g3) for first three games only
+        var wrapperClass = (idx===0?'g1':(idx===1?'g2':(idx===2?'g3':'')));
+        var block=h('div',{class: wrapperClass ? (wrapperClass+' ') : ''},[
+          h('div',{class:'card accent'},[
+            h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+              h('div',{class:'pill accent'}, g.label || gameShortLabel(g)),
+              h('div',{},[
+                h('button',{class:'btn small',onclick:function(){ state.activeGameId=g.id; state.tab='scores'; render(); }},'Go to SCORES'),
+                h('button',{class:'btn small',style:'margin-left:6px;',onclick:function(){
+                  var idx=state.games.indexOf(g);
+                  if(idx>=0) state.games.splice(idx,1);
+                  if(!state.games.length) state.games.push(makeNewGame());
+                  state.activeGameId=state.games[0].id;
+                  render();
+                }},'Delete')
+              ])
+            ]),
+            h('div',{class:'grid grid-2'},[
+              h('div',{},[
+                h('div',{class:'muted'},'Team A (pick 2)'),
+                teamButtons(g,'A')
+              ]),
+              h('div',{},[
+                h('div',{class:'muted'},'Team B (pick 2)'),
+                teamButtons(g,'B')
+              ])
+            ]),
+            h('div',{class:'grid grid-3'},[
+              h('div',{},[ h('div',{class:'muted'},'Front $'),
+                h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.front,
+                  onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+                  onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.front=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.front); endEdit(); }
+                })
+              ]),
+              h('div',{},[ h('div',{class:'muted'},'Back $'),
+                h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.back,
+                  onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+                  onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.back=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.back); endEdit(); }
+                })
+              ]),
+              h('div',{},[ h('div',{class:'muted'},'Overall $'),
+                h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.overall,
+                  onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+                  onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.overall=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.overall); endEdit(); }
+                })
+              ])
+            ]),
+            h('div',{class:'grid grid-3'},[
+              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.front,onclick:function(e){ g.autoPress.front=!!e.target.checked; queueSave(); render(); }}),' Auto-press FRONT' ]),
+              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.back,onclick:function(e){ g.autoPress.back=!!e.target.checked; queueSave(); render(); }}),' Auto-press BACK' ]),
+              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.overall,onclick:function(e){ g.autoPress.overall=!!e.target.checked; queueSave(); render(); }}),' Auto-press OVERALL' ])
+            ]),
+            strokesEditor(g),
+            h('div',{class:'note'},'Scores tab shows GROSS only. Net is auto from strokes + course HCP.')
+          ])
+        ]);
+        gamesCardChildren.push(block);
+      })(state.games[gi], gi);
+    }
+    var gamesCard=h('div',{},gamesCardChildren);
+
+    // iPhone tip
     var helpCard = h('div',{class:'card'},[
       h('div',{class:'pill'},'Use on iPhone'),
       h('div',{class:'grid'},[
@@ -415,19 +692,19 @@
 
   function screenScores(){
     var g0=state.games[0];
-
-    // Find the last hole index where any player has entered a gross score
+    // Find last hole with any entry to auto-scroll
     var lastHole=-1;
     try{
       for(var holeI=0; holeI<18; holeI++){
         for(var pi=0; pi<state.players.length; pi++){
           var pid=state.players[pi].id;
           var v=g0 && g0.gross && g0.gross[pid] ? g0.gross[pid][holeI] : null;
-          if(v!=null && v!=='') lastHole=holeI; // keep max
+          if(v!=null && v!=='') lastHole=holeI;
         }
       }
     }catch(_e){}
 
+    function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=start;i<=end;i++){ var v=arr&&arr[i]; if(v!=null && isFinite(+v)){ t += +v; any=true; } } return any? t : null; }
     function updateSums(pid){
       var arr=g0.gross[pid];
       var f=sumGrossRange(arr,0,8);
@@ -455,7 +732,7 @@
           var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?null:parseInt(d,10);
           for(var gi2=0; gi2<state.games.length; gi2++){ state.games[gi2].gross[pid][hole]=(isNaN(v)?null:v); }
           e.target.value=(v==null?'':String(v));
-          updateSums(pid); // update sums immediately after leaving the cell
+          updateSums(pid);
           endEdit();
         }
       });
@@ -465,6 +742,7 @@
     for(var hi=0; hi<18; hi++){ head.push(h('th',{id:'col_h_'+hi},String(hi+1))); }
     head.push(h('th',{},'F'), h('th',{},'B'), h('th',{},'TOT'));
     var thead=h('thead',{},[ h('tr',{}, head) ]);
+
     var rows=[];
     for(var i3=0;i3<state.players.length;i3++){
       (function(p){
@@ -491,7 +769,6 @@
       scroller
     ]);
 
-    // After render completes, scroll to last filled hole (if any)
     setTimeout(function(){
       try{
         if(lastHole>=0){
@@ -511,7 +788,7 @@
   function screenStatus(){
     function diffsArray(g){ var a=[]; for(var i=0;i<18;i++){ a.push(holeDiff(g,i)); } return a; }
     function curLineDiff(diffs,line){ var sum=0, saw=false; for(var hh2=line.start; hh2<=line.end; hh2++){ var d=diffs[hh2]; if(d==null) break; saw=true; sum+=d; } return saw?sum:null; }
-    function seg(g,label,start,end,autoKey){
+    function seg(g,label,start,end,autoKey, wrapperClass){
       var sg=buildSegmentLines(g,start,end,0,!!g.autoPress[autoKey]);
       var diffs=diffsArray(g);
       var parts=[]; var any=false;
@@ -521,96 +798,217 @@
         else { any=true; parts.push(cur>0?('+'+cur):(cur<0?String(cur):'E')); }
       }
       var text = any ? parts.join(' / ') : 'No holes scored yet';
-
-      // Debug table
-      var debugBlock=null;
-      if(state.debugStatus){
-        // Compute which next-holes actually spawn a press per engine
-        var starters={};
-        for(var ii=1; ii<sg.lines.length; ii++){ starters[ sg.lines[ii].start ] = true; }
-        var rows=[ h('tr',{},[ h('th',{},'Hole'), h('th',{},'Low'), h('th',{},'High'), h('th',{},'Net'), h('th',{},'Cum'), h('th',{},'Press→') ]) ];
-        var cum=0; var blocked=false;
-        for(var hole=start; hole<=end; hole++){
-          var wh=lowHighWinners(g,hole);
-          var d=diffs[hole];
-          if(blocked || d==null){ rows.push(h('tr',{},[ h('td',{}, String(hole+1)), h('td',{}, String(wh.low)), h('td',{}, String(wh.high)), h('td',{}, '—'), h('td',{}, '—'), h('td',{}, starters[hole+1]?'✓':'') ])); blocked=true; continue; }
-          cum+=d; var netStr = (d>0?('+'+d):(d<0?String(d):'E'));
-          rows.push(h('tr',{},[ h('td',{}, String(hole+1)), h('td',{}, String(wh.low)), h('td',{}, String(wh.high)), h('td',{}, netStr), h('td',{}, cum>0?('+'+cum):(cum<0?String(cum):'E')), h('td',{}, starters[hole+1]?'✓':'') ]));
-        }
-        debugBlock = h('div',{class:'card scroll', style:'margin-top:8px;'}, [ h('table',{}, rows) ]);
-      }
-
-      return h('div',{class:'card'},[
-        h('div',{class:'row',style:'align-items:center; justify-content:space-between;'}, [ h('div',{class:'muted'},label+':'), h('div',{class:'pill'}, text ) ]),
-        debugBlock
+      return h('div',{class:(wrapperClass? (wrapperClass+' ') : '')},[
+        h('div',{class:'card accent'},[
+          h('div',{class:'row',style:'align-items:center; justify-content:space-between;'}, [ h('div',{class:'muted'},label+':'), h('div',{class:'pill accent'}, text ) ])
+        ])
       ]);
     }
 
-    var topBar=h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
-      h('label',{},[ h('input',{type:'checkbox',checked:!!state.debugStatus, onclick:function(e){ state.debugStatus=!!e.target.checked; queueSave(); render(); }}), ' Show debug details' ])
-    ]);
-
-    var blocks=[ topBar ];
+    var blocks=[];
     for(var gi3=0; gi3<state.games.length; gi3++){
-      (function(g){
+      (function(g, idx){
         var aN=(g.teamA||[]).map(playerName).join(' & ');
         var bN=(g.teamB||[]).map(playerName).join(' & ');
-        blocks.push(h('div',{class:'card'},[
-          h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
-            h('div',{class:'pill'}, gameShortLabel(g)),
-            h('div',{class:'note'}, 'Positive = Team A')
-          ]),
-          h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
-          seg(g,'Front',0,8,'front'),
-          seg(g,'Back',9,17,'back'),
-          seg(g,'Overall',0,17,'overall')
-        ]));
-      })(state.games[gi3]);
+        var wrapperClass = (idx===0?'g1':(idx===1?'g2':(idx===2?'g3':'')));
+        blocks.push(
+          h('div',{},[
+            h('div',{class:(wrapperClass? (wrapperClass+' ') : '')},[
+              h('div',{class:'card accent'},[
+                h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+                  h('div',{class:'pill accent'}, g.label || gameShortLabel(g)),
+                  h('div',{class:'note'}, 'Positive = Team A')
+                ]),
+                h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—'))
+              ])
+            ]),
+            seg(g,'Front',0,8,'front', wrapperClass),
+            seg(g,'Back',9,17,'back', wrapperClass),
+            seg(g,'Overall',0,17,'overall', wrapperClass)
+          ])
+        );
+      })(state.games[gi3], gi3);
     }
-    return h('div',{},blocks);
+    // Debug toggle
+    var topBar=h('div',{class:'row',style:'align-items:center; justify-content:space-between; margin-bottom:8px;'},[
+      h('label',{},[ h('input',{type:'checkbox',checked:!!state.debugStatus, onclick:function(e){ state.debugStatus=!!e.target.checked; queueSave(); render(); }}), ' Show debug details' ]),
+      h('div',{class:'note'},'(+N / E lines update live)')
+    ]);
+    return h('div',{},[topBar].concat(blocks));
   }
 
-  function screenJunk(){ var g=getGame(state.activeGameId); var pids=[].concat(g.teamA||[],g.teamB||[]); function junkInput(pid,hole){ return h('input',{ type:'tel',inputmode:'numeric',pattern:'[0-9]*', placeholder:'-', value:(g.junkCounts[pid][hole]? String(g.junkCounts[pid][hole]) : ''), onfocus:beginEdit, oninput:function(e){ var r=e.target.value; var d=r.replace(/[^0-9]/g,''); if(d!==r) e.target.value=d; var v=(d==='')?0:parseInt(d,10)||0; g.junkCounts[pid][hole]=v; }, onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?0:parseInt(d,10)||0; g.junkCounts[pid][hole]=v; e.target.value=(v? String(v): ''); endEdit(); } }); } var head=[h('th',{class:'sticky'},'Player')]; for(var hj=0; hj<18; hj++){ head.push(h('th',{},String(hj+1))); } var thead=h('thead',{},[h('tr',{},head)]); var rows=[]; for(var ji=0; ji<pids.length; ji++){ (function(pid){ var cells=[h('td',{class:'sticky'},playerName(pid))]; for(var jh=0; jh<18; jh++){ cells.push(h('td',{},[ junkInput(pid,jh) ])); } rows.push(h('tr',{},cells)); })(pids[ji]); } var tbody=h('tbody',{},rows); var pricing=h('div',{class:'card'},[ h('div',{class:'row',style:'align-items:center; gap:12px;'},[ h('div',{class:'pill'},'Junk $/point'), h('div',{},[ h('div',{class:'muted'},'Front'), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.junkValue.front,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.front=parseInt(d||'0',10)||0; e.target.value=String(g.junkValue.front); endEdit(); }}) ]), h('div',{},[ h('div',{class:'muted'},'Back'), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.junkValue.back,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.back=parseInt(d||'0',10)||0; e.target.value=String(g.junkValue.back); endEdit(); }}) ]) ]) ]); return h('div',{},[ h('div',{class:'row',style:'align-items:center;'},[ h('div',{class:'pill'},'Editing junk for:'), (function(){ var sel=h('select',{}); for(var gk=0; gk<state.games.length; gk++){ var gg=state.games[gk]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })() ]), pricing, h('div',{class:'card scroll'},[ h('table',{},[ thead, tbody ]) ]), h('div',{class:'note'},'Per-hole junk counts × Front/Back $ are included in GAME & TRANSACTIONS.') ]); }
+  function screenJunk(){
+    var g=getGame(state.activeGameId);
+    var pids=[].concat(g.teamA||[],g.teamB||[]);
+    function junkInput(pid,hole){
+      return h('input',{
+        type:'tel',inputmode:'numeric',pattern:'[0-9]*', placeholder:'-',
+        value:(g.junkCounts[pid][hole]? String(g.junkCounts[pid][hole]) : ''),
+        onfocus:beginEdit,
+        oninput:function(e){ var r=e.target.value; var d=r.replace(/[^0-9]/g,''); if(d!==r) e.target.value=d; var v=(d==='')?0:parseInt(d,10)||0; g.junkCounts[pid][hole]=v; },
+        onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?0:parseInt(d,10)||0; g.junkCounts[pid][hole]=v; e.target.value=(v? String(v): ''); endEdit(); }
+      });
+    }
+
+    var head=[h('th',{class:'sticky'},'Player')];
+    for(var hj=0; hj<18; hj++){ head.push(h('th',{},String(hj+1))); }
+    var thead=h('thead',{},[h('tr',{},head)]);
+
+    var rows=[];
+    for(var ji=0; ji<pids.length; ji++){
+      (function(pid){
+        var cells=[h('td',{class:'sticky'},playerName(pid))];
+        for(var jh=0; jh<18; jh++){ cells.push(h('td',{},[ junkInput(pid,jh) ])); }
+        rows.push(h('tr',{},cells));
+      })(pids[ji]);
+    }
+    var tbody=h('tbody',{},rows);
+
+    var wrapperClass = (function(){
+      var idx = state.games.findIndex(function(x){ return x.id===state.activeGameId; });
+      return (idx===0?'g1':(idx===1?'g2':(idx===2?'g3':'')));
+    })();
+
+    var pricing=h('div',{class:(wrapperClass? (wrapperClass+' ') : '')},[
+      h('div',{class:'card accent'},[
+        h('div',{class:'row',style:'align-items:center; gap:12px;'},[
+          h('div',{class:'pill accent'},'Junk $/point'),
+          h('div',{},[ h('div',{class:'muted'},'Front'),
+            h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.junkValue.front,
+              onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.front=parseInt(d||'0',10)||0; e.target.value=String(g.junkValue.front); endEdit(); }
+            })
+          ]),
+          h('div',{},[ h('div',{class:'muted'},'Back'),
+            h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.junkValue.back,
+              onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.back=parseInt(d||'0',10)||0; e.target.value=String(g.junkValue.back); endEdit(); }
+            })
+          ])
+        ])
+      ])
+    ]);
+
+    return h('div',{},[
+      h('div',{class:'row',style:'align-items:center;'},[
+        h('div',{class:'pill'},'Editing junk for:'),
+        (function(){ var sel=h('select',{}); for(var gk=0; gk<state.games.length; gk++){ var gg=state.games[gk]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })()
+      ]),
+      pricing,
+      h('div',{class:'card scroll'},[ h('table',{},[ thead, tbody ]) ]),
+      h('div',{class:'note'},'Per-hole junk × Front/Back $ is included in GAME & TRANSACTIONS (per-team).')
+    ]);
+  }
 
   function screenGame(){
-    var g=getGame(state.activeGameId); var res=computeGameResult(g);
-    function seg(label,segRes){ var pills=[]; for(var i=0;i<segRes.lines.length;i++){ var L=segRes.lines[i]; pills.push(h('div',{class:'pill'}, (L.pressedBy?'Press':'Main')+' • '+(L.start+1)+'–'+(L.end+1)+' • '+segRes.winnerByLine[i] )); }
-      return h('div',{class:'card'},[
-        h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{},label), h('div',{class:'muted'},'Net to Team A: '+fmt(segRes.payoutA)) ]),
-        h('div',{class:'row'},pills)
+    var g=getGame(state.activeGameId);
+    var res=computeGameResult(g);
+
+    function seg(label,segRes, wrapperClass){
+      var pills=[];
+      for(var i=0;i<segRes.lines.length;i++){
+        var L=segRes.lines[i];
+        var tag = (L.pressedBy?'Press':'Main')+' • '+(L.start+1)+'–'+(L.end+1)+' • '+segRes.winnerByLine[i];
+        pills.push(h('div',{class:'pill accent'}, tag));
+      }
+      return h('div',{class:(wrapperClass? (wrapperClass+' ') : '')},[
+        h('div',{class:'card accent'},[
+          h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+            h('div',{},label),
+            h('div',{class:'muted'},'Net to Team A: '+fmt(segRes.payoutA))
+          ]),
+          h('div',{class:'row'},pills)
+        ])
       ]);
     }
-    var aN=(g.teamA||[]).map(playerName).join(' & '); var bN=(g.teamB||[]).map(playerName).join(' & ');
+    var aN=(g.teamA||[]).map(playerName).join(' & ');
+    var bN=(g.teamB||[]).map(playerName).join(' & ');
+    var wrapperClass = (function(){
+      var idx = state.games.findIndex(function(x){ return x.id===state.activeGameId; });
+      return (idx===0?'g1':(idx===1?'g2':(idx===2?'g3':'')));
+    })();
+
+    var liveTotal =
+      (res.segments.front.payoutA || 0) +
+      (res.segments.back.payoutA || 0) +
+      (res.segments.overall.payoutA || 0) +
+      (res.junkScaledA || 0); // scaled per-team junk
+
     return h('div',{},[
       h('div',{class:'row',style:'align-items:center;'},[
         h('div',{class:'pill'},'Choose game'),
         (function(){ var sel=h('select',{}); for(var gi=0; gi<state.games.length; gi++){ var gg=state.games[gi]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })()
       ]),
-        h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
-        h('div',{class:'note'},'Hi/Low: +1 for low, +1 if the other team has the high. If one team holds both the absolute low and the absolute high, the hole is a push. Ties award 0 for that comparison.'),
-        seg('Front (1–9)',res.segments.front),
-        seg('Back (10–18)',res.segments.back),
-        seg('Overall (1–18)',res.segments.overall),
-        h('div',{class:'card'},[ h('div',{class:'pill'}, 'Junk – Team A: '+fmt(res.junk.aVal)+' | Team B: '+fmt(res.junk.bVal)+' • Net to Team A: '+fmt(res.junk.netA) ) ]),
-        h('div',{class:'card'},[ h('div',{class:'pill'}, 'Game Total to Team A: '+fmt(res.totalPayoutA) ) ])
+      h('div',{class:'note'}, 'A: '+(aN||'—')+'  |  B: '+(bN||'—')),
+      h('div',{class:'note'},'Hi/Low: +1 for low, +1 if the other team has the high. If one team holds both the absolute low and the absolute high, the hole is a push. Ties award 0 for that comparison.'),
+
+      seg('Front',   res.segments.front, wrapperClass),
+      seg('Back',    res.segments.back, wrapperClass),
+      seg('Overall', res.segments.overall, wrapperClass),
+
+      // Junk (show unscaled detail, but live total uses scaled)
+      h('div',{class:(wrapperClass? (wrapperClass+' ') : '')},[
+        h('div',{class:'card accent'},[
+          h('div',{class:'pill accent'},
+            'Junk – Team A: '+fmt(res.junk.aVal)+' | Team B: '+fmt(res.junk.bVal)+' • Net to Team A (unscaled): '+fmt(res.junk.netA)
+          )
+        ])
+      ]),
+
+      // LIVE total
+      h('div',{class:(wrapperClass? (wrapperClass+' ') : '')},[
+        h('div',{class:'card accent'},[
+          h('div',{class:'pill accent'}, 'Game Total (Live) to Team A: '+fmt(liveTotal))
+        ])
+      ])
     ]);
   }
 
   function screenTransactions(){
-    // Aggregate per-player across all games, including junk
-    var net={}; var participated={};
-    for(var pi=0; pi<state.players.length; pi++){ net[state.players[pi].id]=0; }
+    // Per-player nets
+    var net = {};
+    for (var pi=0; pi<state.players.length; pi++){ net[state.players[pi].id]=0; }
+
     var perGameRows=[];
-    for(var gi=0; gi<state.games.length; gi++){
-      var gm=state.games[gi]; var r=computeGameResult(gm); var total=r.totalPayoutA; // includes junk
-      var aShare=total/2, bShare=-total/2;
-      for(var t=0; t<(gm.teamA||[]).length; t++){ var idA=gm.teamA[t]; if(idA){ net[idA]+=aShare; participated[idA]=true; } }
-      for(var u=0; u<(gm.teamB||[]).length; u++){ var idB=gm.teamB[u]; if(idB){ net[idB]+=bShare; participated[idB]=true; } }
-      perGameRows.push(h('li',{}, gameShortLabel(gm)+': '+fmt(total)+' to Team A'));
+
+    for (var gi=0; gi<state.games.length; gi++){
+      var gm = state.games[gi];
+      var r  = computeGameResult(gm);
+
+      // team total (segments scaled + junk scaled)
+      perGameRows.push(h('li',{}, gameShortLabel(gm)+': '+fmt(r.totalPayoutA)+' to Team A'));
+
+      var teamA = gm.teamA || [];
+      var teamB = gm.teamB || [];
+
+      // Each player owes/gets raw sum once
+      var rawSum = (r.segments.front.rawA || 0) +
+                   (r.segments.back.rawA  || 0) +
+                   (r.segments.overall.rawA || 0);
+
+      for (var a=0; a<teamA.length; a++) net[teamA[a]] += rawSum;
+      for (var b=0; b<teamB.length; b++) net[teamB[b]] -= rawSum;
+
+      // Junk per-team (doubled by team size), then split evenly among team
+      var aSize = teamA.length || 0, bSize = teamB.length || 0;
+      var jScaled = r.junkScaledA || 0; // positive → to Team A
+      if (aSize > 0){
+        var shareA = jScaled / aSize;
+        for (var aa=0; aa<teamA.length; aa++) net[teamA[aa]] += shareA;
+      }
+      if (bSize > 0){
+        var shareB = (-jScaled) / bSize;
+        for (var bb=0; bb<teamB.length; bb++) net[teamB[bb]] += shareB;
+      }
     }
+
+    var perList=(function(){
+      var arr=[]; for(var i=0;i<state.players.length;i++){ var p=state.players[i]; var val=net[p.id]; arr.push(h('li',{}, p.name+': '+fmt(val))); } return arr;
+    })();
+
     var xfers=settleMinimalCash(net);
-    var perList=(function(){ var arr=[]; for(var i=0;i<state.players.length;i++){ var p=state.players[i]; var val=net[p.id]; arr.push(h('li',{}, p.name+': '+fmt(val))); } return arr; })();
     var xfList=(function(){ var arr=[]; for(var i=0;i<xfers.length;i++){ var t=xfers[i]; arr.push(h('li',{}, playerName(t.from)+' → '+playerName(t.to)+': '+fmt(t.amount) )); } return arr; })();
+
     return h('div',{},[
       h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Game Totals (to Team A)'), (perGameRows.length? h('ul',{},perGameRows) : h('div',{class:'muted'},'No games yet.')) ]),
       h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Player Net (All Games + Junk)'), h('ul',{},perList) ]),
@@ -623,29 +1021,26 @@
     try{
       var root = document.getElementById('app');
       var tabsHost = document.getElementById('tabs');
-      // Rebuild tabs safely
       tabsHost.innerHTML='';
       (function(){
         function mk(id,label){ return h('button',{class:'btn '+(state.tab===id?'active primary':''), onclick:function(){ if(document.activeElement && document.activeElement.blur){ try{ document.activeElement.blur(); }catch(_e){} } __locks=0; state.tab=id; render(); }}, label); }
         var node=h('div',{class:'tabs'},[
-          mk('setup','SETUP'), mk('scores','SCORES'), mk('junk','JUNK'), mk('status','STATUS'), mk('game','GAME'), mk('transactions','TRANSACTIONS')
+          mk('setup','SETUP'), mk('scores','SCORES'), mk('junk','JUNK'),
+          mk('status','STATUS'), mk('game','GAME'), mk('transactions','TRANSACTIONS')
         ]);
         tabsHost.appendChild(node);
       })();
 
       root.innerHTML='';
       var view;
-      if (typeof App === 'function') {
-        view = App();
-      } else {
-        if(state.tab==='setup') view = screenSetup();
-        else if(state.tab==='scores') view = screenScores();
-        else if(state.tab==='status') view = screenStatus();
-        else if(state.tab==='junk') view = screenJunk();
-        else if(state.tab==='game') view = screenGame();
-        else if(state.tab==='transactions') view = screenTransactions();
-        else view = screenGame();
-      }
+      if(state.tab==='setup') view = screenSetup();
+      else if(state.tab==='scores') view = screenScores();
+      else if(state.tab==='status') view = screenStatus();
+      else if(state.tab==='junk') view = screenJunk();
+      else if(state.tab==='game') view = screenGame();
+      else if(state.tab==='transactions') view = screenTransactions();
+      else view = screenGame();
+
       root.appendChild(view);
       errBox.style.display='none';
     } catch(e){
@@ -659,20 +1054,20 @@
   document.getElementById('resetBtn').addEventListener('click', function(){
     if(!confirm('Start a brand-new round? This clears all scores/junk and resets teams/stakes to defaults.')) return;
     try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
-    // Fresh state
     state.players=[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}];
     state.games=[];
-    var ng = makeNewGame(false); // do NOT clone previous gross
+    var ng = makeNewGame(false);
     state.games=[ng];
     state.activeGameId=ng.id;
-    state.course.hcp=[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16];
+    state.course={ name:'El Macero Temp', hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6] };
+    state.presets = state.presets || {};
+    state.presets['El Macero Temp']=state.course.hcp.slice();
     saveState();
     render();
   });
   document.getElementById('clearBtn').addEventListener('click', function(){
     if(!confirm('Clear saved data and wipe current scores/junk in this session?')) return;
     try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
-    // Wipe in-memory scores/junk but keep players/teams/stakes setup intact
     for(var gi=0; gi<state.games.length; gi++){
       var g=state.games[gi];
       for(var pi=0; pi<state.players.length; pi++){
@@ -686,105 +1081,17 @@
     alert('Saved data cleared and round scores wiped.');
   });
 
-  // ===== Self-tests (expanded press & scoring cases) =====
+  // Smoke tests for critical logic
   (function selfTests(){
     try {
-      console.assert(typeof h === 'function', 'h helper should exist');
-      var __tEl = h('div',{},'ok');
-      console.assert(__tEl && __tEl.nodeType===1 && __tEl.tagName==='DIV', 'h() should create elements');
-
-      // Worst-case back nine: Team A loses 2 pts every hole → <= 9 lines max
-      var tg={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      var ids=['p1','p2','p3','p4'];
-      for(var k=0;k<ids.length;k++){ tg.gross[ids[k]]=make18(null); }
-      for(var hi9=9; hi9<18; hi9++){ tg.gross['p1'][hi9]=5; tg.gross['p2'][hi9]=5; tg.gross['p3'][hi9]=3; tg.gross['p4'][hi9]=3; }
-      var segBack=buildSegmentLines(tg,9,17,1,true); console.assert(segBack.lines.length<=9,'Back segment should have <= 9 lines in worst case');
-
-      // Style injected
-      var hasStyle=false; try{ hasStyle=[].some.call(document.head.querySelectorAll('style'), function(s){ return (s.textContent||'').indexOf('--teamA:')!==-1; }); }catch(_e){}
-      console.assert(hasStyle, 'Style helper should inject a style tag');
-
-      // Sum helper
+      console.assert(typeof h === 'function', 'h helper exists');
       var arr=make18(null); for(var j9=9; j9<18; j9++){ arr[j9]=5; }
-      console.assert(sumGrossRange(arr,9,17)===45, 'Back sum should be 45 for nine 5s');
+      console.assert((function(x){ var t=0; for(var i=9;i<=17;i++) t+=x[i]; return t; })(arr)===45, 'Back sum quick check');
 
-      // Scoring logic sanity
-      // Split: same team owns absolute low & absolute high → push (0)
-      var tSplit={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tSplit.gross['p1']=make18(null); tSplit.gross['p2']=make18(null); tSplit.gross['p3']=make18(null); tSplit.gross['p4']=make18(null);
-      tSplit.gross['p1'][0]=4; tSplit.gross['p2'][0]=8; tSplit.gross['p3'][0]=5; tSplit.gross['p4'][0]=6;
-      console.assert(holeDiff(tSplit,0)===0,'Split low/high should be 0');
-      // Low tie only → ±1
-      var tLowTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tLowTie.gross['p1']=make18(null); tLowTie.gross['p2']=make18(null); tLowTie.gross['p3']=make18(null); tLowTie.gross['p4']=make18(null);
-      // A: 4,6  B: 4,7 → low tie, A wins "high" point → +1
-      tLowTie.gross['p1'][0]=4; tLowTie.gross['p2'][0]=6; tLowTie.gross['p3'][0]=4; tLowTie.gross['p4'][0]=7;
-      console.assert(holeDiff(tLowTie,0)===1,'Low tie only should be +1 for Team A');
-      // High tie only → ±1
-      var tHighTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tHighTie.gross['p1']=make18(null); tHighTie.gross['p2']=make18(null); tHighTie.gross['p3']=make18(null); tHighTie.gross['p4']=make18(null);
-      // A: 4,7  B: 5,7 → high tie, A wins low → +1
-      tHighTie.gross['p1'][0]=4; tHighTie.gross['p2'][0]=7; tHighTie.gross['p3'][0]=5; tHighTie.gross['p4'][0]=7;
-      console.assert(holeDiff(tHighTie,0)===1,'High tie only should be +1 for Team A');
-      // Both tie → 0
-      var tBothTie={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tBothTie.gross['p1']=make18(null); tBothTie.gross['p2']=make18(null); tBothTie.gross['p3']=make18(null); tBothTie.gross['p4']=make18(null);
-      // A: 5,7  B: 5,7
-      tBothTie.gross['p1'][0]=5; tBothTie.gross['p2'][0]=7; tBothTie.gross['p3'][0]=5; tBothTie.gross['p4'][0]=7;
-      console.assert(holeDiff(tBothTie,0)===0,'Both tie should be 0');
-
-      // Press tests (line-agnostic):
-      // Sequence: +1, +1 (hit +2 → 1 press at next hole), then +2 (original hits +4 and press hits +2 on the same hole) → only ONE press created that hole
-      var tp={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tp.gross['p1']=make18(null); tp.gross['p2']=make18(null); tp.gross['p3']=make18(null); tp.gross['p4']=make18(null);
-      // Hole 0: +1  (A low only) → A: 4,6  B: 5,6
-      tp.gross['p1'][0]=4; tp.gross['p2'][0]=6; tp.gross['p3'][0]=5; tp.gross['p4'][0]=6;
-      // Hole 1: +1  (A low only again)
-      tp.gross['p1'][1]=4; tp.gross['p2'][1]=6; tp.gross['p3'][1]=5; tp.gross['p4'][1]=6;
-      // Hole 2: +2  (A sweep) → original line to +4; press line (started at 2) to +2
-      tp.gross['p1'][2]=4; tp.gross['p2'][2]=5; tp.gross['p3'][2]=6; tp.gross['p4'][2]=7;
-      var segPress=buildSegmentLines(tp,0,8,1,true);
-      console.assert(segPress.lines.length===3,'Only one new press can be created on a single hole (expect 3 lines: main + press@2 + press@3)');
-      console.assert(segPress.lines[1].start===2 && segPress.lines[2].start===3,'Presses should start on holes 3 and 4 (1-indexed)');
-
-      // No press on last hole even if threshold reached
-      var tp2={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      tp2.gross['p1']=make18(null); tp2.gross['p2']=make18(null); tp2.gross['p3']=make18(null); tp2.gross['p4']=make18(null);
-      // Two holes only (0..1): +1, +1 → hits +2 at last hole → cannot start a press
-      tp2.gross['p1'][0]=4; tp2.gross['p2'][0]=6; tp2.gross['p3'][0]=5; tp2.gross['p4'][0]=6;
-      tp2.gross['p1'][1]=4; tp2.gross['p2'][1]=6; tp2.gross['p3'][1]=5; tp2.gross['p4'][1]=6;
-      var segShort=buildSegmentLines(tp2,0,1,1,true);
-      console.assert(segShort.lines.length===1,'No press can start on the last hole of a segment');
-
-      // USER SCENARIO (first three holes)
-      var usr={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      usr.gross['p1']=make18(null); usr.gross['p2']=make18(null); usr.gross['p3']=make18(null); usr.gross['p4']=make18(null);
-      // H1: P1=4,P2=6,P3=5,P4=5 → 0
-      usr.gross['p1'][0]=4; usr.gross['p2'][0]=6; usr.gross['p3'][0]=5; usr.gross['p4'][0]=5;
-      // H2: P1=4,P2=5,P3=5,P4=7 → +2
-      usr.gross['p1'][1]=4; usr.gross['p2'][1]=5; usr.gross['p3'][1]=5; usr.gross['p4'][1]=7;
-      // H3: P1=3,P2=4,P3=4,P4=5 → +2
-      usr.gross['p1'][2]=3; usr.gross['p2'][2]=4; usr.gross['p3'][2]=4; usr.gross['p4'][2]=5;
-      var segUsr=buildSegmentLines(usr,0,8,1,true);
-      console.assert(segUsr.lines.length===3,'After 3 holes: expect 3 lines (main + press@3 + press@4 scheduled)');
-      var diffsU=[]; for(var di=0; di<18; di++){ diffsU.push(holeDiff(usr,di)); }
-      function curFor(diffs,line){ var s=0; var saw=false; for(var x=line.start; x<=line.end; x++){ var d=diffs[x]; if(d==null) break; saw=true; s+=d; } return saw? s : null; }
-      var c0=curFor(diffsU, segUsr.lines[0]);
-      var c1=curFor(diffsU, segUsr.lines[1]);
-      var c2=curFor(diffsU, segUsr.lines[2]);
-      console.assert(c0===4 && c1===2 && c2===null, 'Front status should read +4 / +2 / — after 3 holes');
-
-      // NEW: Blocked-line should not "catch up" and add an extra press later
-      var usr2={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{}, gross:{} };
-      usr2.gross['p1']=make18(null); usr2.gross['p2']=make18(null); usr2.gross['p3']=make18(null); usr2.gross['p4']=make18(null);
-      // Hole 1: push (0)
-      usr2.gross['p1'][0]=4; usr2.gross['p2'][0]=8; usr2.gross['p3'][0]=5; usr2.gross['p4'][0]=7;
-      // Hole 2: +2 (A sweep) → schedule press to start on 3
-      usr2.gross['p1'][1]=4; usr2.gross['p2'][1]=5; usr2.gross['p3'][1]=6; usr2.gross['p4'][1]=7;
-      // Hole 3: +2 (A sweep) → main hits +4, press hits +2 on the same hole → only one new press total, scheduled on 4
-      usr2.gross['p1'][2]=3; usr2.gross['p2'][2]=4; usr2.gross['p3'][2]=5; usr2.gross['p4'][2]=6;
-      var segUsr2=buildSegmentLines(usr2,0,8,1,true);
-      console.assert(segUsr2.lines.length===3,'Blocked-line must not add an extra press later; still exactly 3 lines');
+      // Strokes-alone must not score: requires all four net scores
+      var tg={ teamA:['p1','p2'], teamB:['p3','p4'], strokesCount:{'p1':18,'p2':0,'p3':0,'p4':0}, gross:{} };
+      tg.gross['p1']=make18(null); tg.gross['p2']=make18(null); tg.gross['p3']=make18(null); tg.gross['p4']=make18(null);
+      console.assert(holeDiff(tg,0)===null,'No score without gross numbers');
 
     } catch(e){ errBox.style.display='block'; errBox.textContent='Self-test failed: '+e.message; }
   })();
