@@ -8,6 +8,22 @@
 <meta name="theme-color" content="#2563eb" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1420" />
 <meta name="apple-mobile-web-app-title" content="Nassau Hi/Low by Bunch Bets (V2.6)" />
+
+<!-- ========= ICONS & MANIFEST (GitHub raw links) =========
+Replace YOUR_USER/YOUR_REPO/YOUR_BRANCH with your repo path.
+Example: yourUser/yourRepo/main
+-->
+<link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/favicon-16.png">
+<link rel="icon" href="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/apple-touch-icon-180.png">
+<link rel="mask-icon" href="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/safari-pinned-tab.svg" color="#2563eb">
+<link rel="manifest" href="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/manifest.webmanifest" crossorigin="anonymous">
+<meta name="msapplication-TileColor" content="#0f1420">
+<meta name="msapplication-config" content="https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/YOUR_BRANCH/icons/browserconfig.xml" />
+<!-- (Optional) Cache-bust example: add ?v=2 to any icon URL if needed. -->
+<!-- ======================================================= -->
+
 <link rel="icon" href="favicon.ico" />
 <title>Nassau – Hi/Low (Build 2.6)</title>
 <style>
@@ -32,7 +48,6 @@
   th,td{ border:1px solid var(--border); padding:6px; text-align:center; vertical-align:top; }
   th.sticky, td.sticky{ position:sticky; left:0; background:var(--card); z-index:2; text-align:left; }
   .tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
-  .tabs .btn{ min-height:32px; padding:6px 10px; font-size:13px; }
   .tabs .btn.active{ background:var(--acc); color:#fff; border-color:var(--acc); }
   .scroll{ overflow:auto; }
   .note{ font-size:12px; color:var(--muted); }
@@ -66,104 +81,40 @@
     .theme-g1 .card, .shape-g1 .card{ outline: 1px solid rgba(22,163,74,.35); background: linear-gradient(0deg, rgba(22,163,74,.10), rgba(22,163,74,.10)) var(--card); }
     .theme-g2 .card, .shape-g2 .card{ outline: 1px solid rgba(220,38,38,.35); background: linear-gradient(0deg, rgba(220,38,38,.10), rgba(220,38,38,.10)) var(--card); }
     .theme-g3 .card, .shape-g3 .card{ outline: 1px solid rgba(217,119,6,.35);  background: linear-gradient(0deg, rgba(217,119,6,.10),  rgba(217,119,6,.10))  var(--card); }
-  }/* Junk tab boxes */
-.junkBox{ width:56px; text-align:center; }
-/* Force input text to be visible across browsers (including iOS autofill quirks) */
-input[type="text"],
-input[type="tel"],
-select,
-.junkBox{
-  color: var(--txt) !important;
-  -webkit-text-fill-color: var(--txt) !important; /* Safari/iOS */
-  caret-color: var(--txt) !important;
-  background-color: transparent; /* keep your theme */
-  opacity: 1 !important; /* prevent accidental dimming */
-}
+  }
 
-.junkBox{ width:56px; text-align:center; font-variant-numeric: tabular-nums; }
-/* --- Debug/force-visible styling for Junk inputs --- */
-.junkBox{
-  width:56px;
-  text-align:center;
-  font-variant-numeric: tabular-nums;
-
-  /* Force text to show in Chrome */
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  caret-color: #ffffff !important;
-
-  /* Make the box visibly different while we debug */
-  background: rgba(59,130,246,0.15) !important; /* subtle blue */
-  border: 1px solid rgba(59,130,246,0.65) !important;
-  opacity: 1 !important;
-}
-
-/* Ensure table cells don't reduce input opacity/contrast */
-table td input.junkBox{ opacity: 1 !important; }
-
-/* In case a parent is applying a weird blend/filter */
-.junkBox{ mix-blend-mode: normal !important; filter: none !important; }
-/* Make junk input text impossible to hide + add a visible mirror badge */
-.junkBox{
-  width:56px;
-  text-align:center;
-  font-variant-numeric: tabular-nums;
-  font-size:18px !important;                 /* bigger, guaranteed size */
-  color:#ffffff !important;                  /* visible on your dark theme */
-  -webkit-text-fill-color:#ffffff !important;
-  caret-color:#ffffff !important;
-  background: rgba(59,130,246,0.15) !important; 
-  border: 1px solid rgba(59,130,246,0.65) !important;
-  opacity:1 !important;
-  mix-blend-mode: normal !important;
-  filter:none !important;
-}
-
-/* Wrapper + badge that mirrors the value (so you SEE it even if input text fails) */
-.junkWrap{ position:relative; display:inline-block; }
-.junkVal{
-  position:absolute; right:6px; top:4px;
-  font-size:12px; line-height:1;
-  color:#ffffff; opacity:0.85; pointer-events:none; user-select:none;
-}
-/* --- Stable styling for Junk inputs with visible overlay value --- */
-.junkWrap{ position:relative; display:inline-block; }
-
-.junkBox{
-  width:56px;
-  height:32px;
-  text-align:center;
-  font-variant-numeric: tabular-nums;
-  font-size:16px;                 /* readable */
-  line-height:32px;               /* vertical centering fallback */
-  color:#ffffff !important;
-  -webkit-text-fill-color:#ffffff !important;
-  caret-color:#ffffff !important;
-  background: rgba(59,130,246,0.15) !important; /* you can tone down later */
-  border: 1px solid rgba(59,130,246,0.65) !important;
-  opacity:1 !important;
-  mix-blend-mode: normal !important;
-  filter:none !important;
-}
-
-/* Center the mirror value so it's not tiny in the corner */
-.junkVal{
-  position:absolute;
-  inset:0;                        /* fill wrapper */
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:16px;
-  line-height:1;
-  color:#ffffff;
-  opacity:0.9;
-  pointer-events:none;
-  user-select:none;
-}
-
-/* Ensure table styles don't fade the input */
-table td input.junkBox{ opacity:1 !important; }
-
+  /* --- Junk input visibility/debug styles (you added earlier) --- */
+  .junkWrap{ position:relative; display:inline-block; }
+  .junkBox{
+    width:56px;
+    height:32px;
+    text-align:center;
+    font-variant-numeric: tabular-nums;
+    font-size:16px;
+    line-height:32px;
+    color:#ffffff !important;
+    -webkit-text-fill-color:#ffffff !important;
+    caret-color:#ffffff !important;
+    background: rgba(59,130,246,0.15) !important;
+    border: 1px solid rgba(59,130,246,0.65) !important;
+    opacity:1 !important;
+    mix-blend-mode: normal !important;
+    filter:none !important;
+  }
+  .junkVal{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    line-height:1;
+    color:#ffffff;
+    opacity:0.9;
+    pointer-events:none;
+    user-select:none;
+  }
+  table td input.junkBox{ opacity:1 !important; }
 </style>
 </head>
 <body>
@@ -691,58 +642,42 @@ table td input.junkBox{ opacity:1 !important; }
 
   function screenJunk(){
     var g=getGame(state.activeGameId); var pids=[].concat(g.teamA||[],g.teamB||[]);
-   function junkInput(pid, hole){
-  if(!g.junkCounts[pid]) g.junkCounts[pid] = make18(0);
-
-  var cur = g.junkCounts[pid][hole];
-  if(!Number.isFinite(cur)) { cur = 0; g.junkCounts[pid][hole] = 0; }
-
-  // Input shows blank for 0; badge also hides for 0
-  var displayVal   = (cur === 0 ? '' : String(cur));
-  var displayBadge = (cur === 0 ? '' : String(cur));
-
-  var badge = h('span', { class:'junkVal' }, displayBadge);
-
-  return h('div', { class:'junkWrap' }, [
-    h('input',{
-      class:'junkBox',
-      type:'text',
-      inputmode:'numeric',
-      pattern:'[0-9]*',
-      autocomplete:'off',
-      placeholder:'-',
-      value: displayVal,
-
-      oninput: function(e){
-        var digits = e.target.value.replace(/[^0-9]/g,'');
-        if(digits !== e.target.value) e.target.value = digits;
-
-        var v = (digits === '') ? 0 : parseInt(digits,10);
-        g.junkCounts[pid][hole] = v;
-
-        // Hide badge when zero, show number otherwise
-        badge.textContent = (v === 0 ? '' : String(v));
-
-        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
-      },
-
-      onblur: function(e){
-        var digits = e.target.value.replace(/[^0-9]/g,'');
-        var v = (digits === '') ? 0 : parseInt(digits,10);
-        g.junkCounts[pid][hole] = v;
-
-        // Keep input blank when zero; otherwise show number
-        e.target.value = (v === 0 ? '' : String(v));
-        badge.textContent = (v === 0 ? '' : String(v));
-
-        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
-      }
-    }),
-    badge
-  ]);
-}
-
-
+    function junkInput(pid, hole){
+      if(!g.junkCounts[pid]) g.junkCounts[pid] = make18(0);
+      var cur = g.junkCounts[pid][hole];
+      if(!Number.isFinite(cur)) { cur = 0; g.junkCounts[pid][hole] = 0; }
+      var displayVal   = (cur === 0 ? '' : String(cur));
+      var displayBadge = (cur === 0 ? '' : String(cur));
+      var badge = h('span', { class:'junkVal' }, displayBadge);
+      return h('div', { class:'junkWrap' }, [
+        h('input',{
+          class:'junkBox',
+          type:'text',
+          inputmode:'numeric',
+          pattern:'[0-9]*',
+          autocomplete:'off',
+          placeholder:'-',
+          value: displayVal,
+          oninput: function(e){
+            var digits = e.target.value.replace(/[^0-9]/g,'');
+            if(digits !== e.target.value) e.target.value = digits;
+            var v = (digits === '') ? 0 : parseInt(digits,10);
+            g.junkCounts[pid][hole] = v;
+            badge.textContent = (v === 0 ? '' : String(v));
+            try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
+          },
+          onblur: function(e){
+            var digits = e.target.value.replace(/[^0-9]/g,'');
+            var v = (digits === '') ? 0 : parseInt(digits,10);
+            g.junkCounts[pid][hole] = v;
+            e.target.value = (v === 0 ? '' : String(v));
+            badge.textContent = (v === 0 ? '' : String(v));
+            try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
+          }
+        }),
+        badge
+      ]);
+    }
     var head=[h('th',{class:'sticky'},'Player')]; for(var j=0;j<18;j++) head.push(h('th',{},String(j+1)));
     var rows=[];
     for(var i=0;i<pids.length;i++){
