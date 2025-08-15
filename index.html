@@ -508,9 +508,9 @@ function fmtTeamPlayer(total){
               h('div',{},[ h('div',{class:'muted'},'Overall $'), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.stakes.overall,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.stakes.overall=parseInt(d||'0',10)||0; e.target.value=String(g.stakes.overall); endEdit(); }}) ])
             ]),
             h('div',{class:'grid grid-3'},[
-              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.front,onclick:function(e){ g.autoPress.front=!!e.target.checked; queueSave(); render(); }}),' Auto-press FRONT' ]),
-              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.back,onclick:function(e){ g.autoPress.back=!!e.target.checked; queueSave(); render(); }}),' Auto-press BACK' ]),
-              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.overall,onclick:function(e){ g.autoPress.overall=!!e.target.checked; queueSave(); render(); }}),' Auto-press OVERALL' ])
+              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.front,onclick:function(e){ g.autoPress.front=!!e.target.checked; queueSave(); render(); }}),' Auto-Press 2DN' ]),
+              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.back,onclick:function(e){ g.autoPress.back=!!e.target.checked; queueSave(); render(); }}),' Auto-Press 2DN' ]),
+              h('label',{},[ h('input',{type:'checkbox',checked:g.autoPress.overall,onclick:function(e){ g.autoPress.overall=!!e.target.checked; queueSave(); render(); }}),' Auto-Press 2DN' ])
             ]),
             strokesEditor(g),
             h('div',{class:'note'},'Scores tab shows GROSS only. Net is auto from strokes + course HCP.')
