@@ -646,72 +646,127 @@ function fmtTeamPlayer(total){
   }
 
   function screenJunk(){
-    var g=getGame(state.activeGameId); var pids=[].concat(g.teamA||[],g.teamB||[]);
-    function junkInput(pid, hole){
-      if(!g.junkCounts[pid]) g.junkCounts[pid] = make18(0);
-      var cur = g.junkCounts[pid][hole];
-      if(!Number.isFinite(cur)) { cur = 0; g.junkCounts[pid][hole] = 0; }
-      var displayVal   = (cur === 0 ? '' : String(cur));
-      var displayBadge = (cur === 0 ? '' : String(cur));
-      var badge = h('span', { class:'junkVal' }, displayBadge);
-      return h('div', { class:'junkWrap' }, [
-        h('input',{
-          class:'junkBox',
-          type:'text',
-          inputmode:'numeric',
-          pattern:'[0-9]*',
-          autocomplete:'off',
-          placeholder:'-',
-          value: displayVal,
-          oninput: function(e){
-            var digits = e.target.value.replace(/[^0-9]/g,'');
-            if(digits !== e.target.value) e.target.value = digits;
-            var v = (digits === '') ? 0 : parseInt(digits,10);
-            g.junkCounts[pid][hole] = v;
-            badge.textContent = (v === 0 ? '' : String(v));
-            try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
-          },
-          onblur: function(e){
-            var digits = e.target.value.replace(/[^0-9]/g,'');
-            var v = (digits === '') ? 0 : parseInt(digits,10);
-            g.junkCounts[pid][hole] = v;
-            e.target.value = (v === 0 ? '' : String(v));
-            badge.textContent = (v === 0 ? '' : String(v));
-            try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
+  var blocks = [];
+
+  for (var gi = 0; gi < state.games.length; gi++){
+    (function(g, idx){
+      var pids = [].concat(g.teamA || [], g.teamB || []);
+      var theme = idx===0 ? 'theme-g1' : (idx===1 ? 'theme-g2' : (idx===2 ? 'theme-g3' : ''));
+
+      function junkInput(pid, hole, gRef){
+        if(!gRef.junkCounts[pid]) gRef.junkCounts[pid] = make18(0);
+        var cur = gRef.junkCounts[pid][hole];
+        if(!Number.isFinite(cur)) { cur = 0; gRef.junkCounts[pid][hole] = 0; }
+
+        var displayVal   = (cur === 0 ? '' : String(cur));
+        var displayBadge = (cur === 0 ? '' : String(cur));
+        var badge = h('span', { class:'junkVal' }, displayBadge);
+
+        return h('div', { class:'junkWrap' }, [
+          h('input',{
+            class:'junkBox',
+            type:'text',
+            inputmode:'numeric',
+            pattern:'[0-9]*',
+            autocomplete:'off',
+            placeholder:'-',
+            value: displayVal,
+            oninput: function(e){
+              var digits = e.target.value.replace(/[^0-9]/g,'');
+              if(digits !== e.target.value) e.target.value = digits;
+              var v = (digits === '') ? 0 : parseInt(digits,10);
+              gRef.junkCounts[pid][hole] = v;
+              badge.textContent = (v === 0 ? '' : String(v));
+              try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
+            },
+            onblur: function(e){
+              var digits = e.target.value.replace(/[^0-9]/g,'');
+              var v = (digits === '') ? 0 : parseInt(digits,10);
+              gRef.junkCounts[pid][hole] = v;
+              e.target.value = (v === 0 ? '' : String(v));
+              badge.textContent = (v === 0 ? '' : String(v));
+              try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
+            }
+          }),
+          badge
+        ]);
+      }
+
+      // Header row
+      var head = [ h('th', { class:'sticky' }, 'Player') ];
+      for (var j=0; j<18; j++) head.push(h('th', {}, String(j+1)));
+
+      // Body rows
+      var rows = [];
+      for (var i=0; i<pids.length; i++){
+        (function(pid){
+          var cells=[ h('td', { class:'sticky' }, playerName(pid)) ];
+          for (var hIdx=0; hIdx<18; hIdx++){
+            cells.push( h('td', {}, [ junkInput(pid, hIdx, g) ]) );
           }
-        }),
-        badge
+          rows.push( h('tr', {}, cells) );
+        })(pids[i]);
+      }
+
+      var thead  = h('thead', {}, [ h('tr', {}, head) ]);
+      var tbody  = h('tbody', {}, rows);
+      var grid   = h('div', { class:'card scroll' }, [ h('table', {}, [ thead, tbody ]) ]);
+
+      // Per‑game junk pricing editors
+      var pricing = h('div', { class:'card' }, [
+        h('div', { class:'row', style:'align-items:center; gap:12px;' }, [
+          h('div', { class:'pill' }, 'Junk $/point'),
+          h('div', {}, [
+            h('div', { class:'muted' }, 'Front'),
+            h('input', {
+              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+              value: g.junkValue.front,
+              onfocus: beginEdit,
+              oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.front=parseInt(d||'0',10)||0;
+                e.target.value=String(g.junkValue.front); endEdit();
+              }
+            })
+          ]),
+          h('div', {}, [
+            h('div', { class:'muted' }, 'Back'),
+            h('input', {
+              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+              value: g.junkValue.back,
+              onfocus: beginEdit,
+              oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.back=parseInt(d||'0',10)||0;
+                e.target.value=String(g.junkValue.back); endEdit();
+              }
+            })
+          ])
+        ])
       ]);
-    }
-    var head=[h('th',{class:'sticky'},'Player')]; for(var j=0;j<18;j++) head.push(h('th',{},String(j+1)));
-    var rows=[];
-    for(var i=0;i<pids.length;i++){
-      (function(pid){
-        var cells=[h('td',{class:'sticky'},playerName(pid))];
-        for(var hIdx=0; hIdx<18; hIdx++) cells.push(h('td',{},[junkInput(pid,hIdx)]));
-        rows.push(h('tr',{},cells));
-      })(pids[i]);
-    }
-    var pricing=h('div',{class:'card'},[
-      h('div',{class:'row',style:'align-items:center; gap:12px;'},[
-        h('div',{class:'pill'},'Junk $/point'),
-        h('div',{},[ h('div',{class:'muted'},'Front'), h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.junkValue.front,onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.front=parseInt(d||'0',10)||0; e.target.value=String(g.junkValue.front); endEdit(); }}) ]),
-        h('div',{},[ h('div',{class:'muted'},'Back'),  h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',value:g.junkValue.back, onfocus:beginEdit,oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.back=parseInt(d||'0',10)||0; e.target.value=String(g.junkValue.back); endEdit(); }}) ])
-      ])
-    ]);
 
-    var thead=h('thead',{},[h('tr',{},head)]), tbody=h('tbody',{},rows);
-    var grid=h('div',{class:'card scroll'},[ h('table',{},[thead,tbody]) ]);
+      // Card header
+      var namesA=(g.teamA||[]).map(playerName).join(' & ');
+      var namesB=(g.teamB||[]).map(playerName).join(' & ');
 
-    return h('div',{},[
-      h('div',{class:'row',style:'align-items:center;'},[
-        h('div',{class:'pill'},'Editing junk for:'),
-        (function(){ var sel=h('select',{}); for(var gk=0; gk<state.games.length; gk++){ var gg=state.games[gk]; sel.appendChild(h('option',{value:gg.id,selected:gg.id===state.activeGameId,title:gameLongLabel(gg)}, gameShortLabel(gg))); } sel.addEventListener('change',function(e){ state.activeGameId=e.target.value; render(); }); return sel; })()
-      ]),
-      pricing, grid,
-      h('div',{class:'note'},'Per-hole junk counts × Front/Back $ are included and doubled at team settlement.')
-    ]);
+      blocks.push(
+        h('div', { class: theme }, [
+          h('div', { class:'card' }, [
+            h('div', { class:'row', style:'align-items:center; justify-content:space-between;' }, [
+              h('div', { class:'pill' }, gameShortLabel(g)),
+              h('div', { class:'note' }, 'A: '+(namesA||'—')+'  |  B: '+(namesB||'—'))
+            ])
+          ]),
+          pricing,
+          grid,
+          h('div', { class:'note' }, 'Per-hole junk counts × Front/Back $ are included and doubled at team settlement.')
+        ])
+      );
+    })(state.games[gi], gi);
   }
+
+  return h('div', {}, blocks);
+}
 
  function screenGame(){
   var blocks=[];
@@ -797,7 +852,7 @@ function fmtTeamPlayer(total){
 
     return h('div',{},[
       h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Game Totals (to Team A)'), (perGameRows.length? h('ul',{},perGameRows) : h('div',{class:'muted'},'No games yet.')) ]),
-      h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Player Net (All Games + Junk, doubled team)') , h('ul',{},perList) ]),
+      h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Player Net (All Games + Junk)') , h('ul',{},perList) ]),
       h('div',{class:'card'},[ h('div',{class:'pill'},'Least-Cash Transfers'), (xfers.length? h('ul',{},xfList) : h('div',{class:'muted'},'All square.')) ]),
       h('div',{},themed)
     ]);
