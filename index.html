@@ -916,9 +916,8 @@ function fmtTeamPlayer(total){
     (function(g, idx){
       var pids = [].concat(g.teamA || [], g.teamB || []);
       var theme = idx===0 ? 'theme-g1' : (idx===1 ? 'theme-g2' : (idx===2 ? 'theme-g3' : ''));
-      var baseTab = idx * 10000; // keep tab scopes separate per game
 
-      function junkInput(pid, hole, rowIdx, gRef){
+      function junkInput(pid, hole, gRef){
         if(!gRef.junkCounts[pid]) gRef.junkCounts[pid] = make18(0);
         var cur = gRef.junkCounts[pid][hole];
         if(!Number.isFinite(cur)) { cur = 0; gRef.junkCounts[pid][hole] = 0; }
@@ -926,9 +925,6 @@ function fmtTeamPlayer(total){
         var displayVal   = (cur === 0 ? '' : String(cur));
         var displayBadge = (cur === 0 ? '' : String(cur));
         var badge = h('span', { class:'junkVal' }, displayBadge);
-
-        // column-major tabindex within this game's grid
-        var tabIndex = baseTab + (hole * pids.length) + rowIdx + 1;
 
         return h('div', { class:'junkWrap' }, [
           h('input',{
@@ -938,7 +934,6 @@ function fmtTeamPlayer(total){
             pattern:'[0-9]*',
             autocomplete:'off',
             placeholder:'-',
-            tabindex: tabIndex,
             value: displayVal,
             oninput: function(e){
               var digits = e.target.value.replace(/[^0-9]/g,'');
@@ -947,19 +942,6 @@ function fmtTeamPlayer(total){
               gRef.junkCounts[pid][hole] = v;
               badge.textContent = (v === 0 ? '' : String(v));
               try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
-            },
-            onkeydown: function(e){
-              if(e.key==='Enter'){
-                e.preventDefault();
-                var nextTab = tabIndex + 1;
-                var colEnd  = baseTab + ((hole+1)*pids.length);
-                if(nextTab>colEnd){
-                  // wrap to top of next column in this game
-                  nextTab = baseTab + ((hole+1)*pids.length - (pids.length-1));
-                }
-                var next = document.querySelector('input[tabindex="'+nextTab+'"]');
-                if(next) next.focus();
-              }
             },
             onblur: function(e){
               var digits = e.target.value.replace(/[^0-9]/g,'');
@@ -974,43 +956,118 @@ function fmtTeamPlayer(total){
         ]);
       }
 
-      // Header row
+      // ---- header row (with per-hole IDs for scrolling target)
       var head = [ h('th', { class:'sticky' }, 'Player') ];
-      for (var j=0; j<18; j++) head.push(h('th', {}, String(j+1)));
-
-      // Body rows
-      var rows = [];
-      for (var i=0; i<pids.length; i++){
-        (function(pid,rowIdx){
-          var cells=[ h('td', { class:'sticky' }, playerName(pid)) ];
-          for (var hIdx=0; hIdx<18; hIdx++){
-            cells.push( h('td', {}, [ junkInput(pid, hIdx, rowIdx, g) ]) );
-          }
-          rows.push( h('tr', {}, cells) );
-        })(pids[i], i);
+      for (var j=0; j<18; j++){
+        head.push(h('th', { id:'junk_col_'+g.id+'_'+j }, String(j+1)));
       }
 
-      // ...keep your existing pricing block, totals, etc...
-      // (no changes needed below except where you place `rows` into the table)
+      // ---- body rows
+      var rows = [];
+      for (var i=0; i<pids.length; i++){
+        (function(pid){
+          var cells=[ h('td', { class:'sticky' }, playerName(pid)) ];
+          for (var hIdx=0; hIdx<18; hIdx++){
+            cells.push( h('td', {}, [ junkInput(pid, hIdx, g) ]) );
+          }
+          rows.push( h('tr', {}, cells) );
+        })(pids[i]);
+      }
+
       var thead  = h('thead', {}, [ h('tr', {}, head) ]);
       var tbody  = h('tbody', {}, rows);
-      var grid   = h('div', { class:'card scroll' }, [ h('table', {}, [ thead, tbody ]) ]);
 
-      // (keep your existing per-game header + pricing + totals)
-      // push into blocks as you already do
-      // ...
-      // Example minimal push to show where grid goes:
+      // ---- scroller wrapper with per-game ID
+      var scrollerId = 'junkScroll_'+g.id;
+      var grid   = h('div', { class:'card scroll', id: scrollerId }, [
+        h('table', {}, [ thead, tbody ])
+      ]);
+
+      // ---- compact per-game junk pricing editors (single row)
+      var pricing = h('div', { class:'card' }, [
+        h('div', { class:'row', style:'align-items:center; gap:10px; flex-wrap:wrap;' }, [
+          h('div', { class:'pill' }, 'Junk $/point'),
+          h('div', {class:'row', style:'align-items:center; gap:6px;'}, [
+            h('div', { class:'muted' }, 'Front'),
+            h('input', {
+              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+              value: g.junkValue.front,
+              style:'width:56px; text-align:center; min-height:36px;',
+              onfocus: beginEdit,
+              oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.front=parseInt(d||'0',10)||0;
+                e.target.value=String(g.junkValue.front); endEdit();
+              }
+            })
+          ]),
+          h('div', {class:'row', style:'align-items:center; gap:6px;'}, [
+            h('div', { class:'muted' }, 'Back'),
+            h('input', {
+              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+              value: g.junkValue.back,
+              style:'width:56px; text-align:center; min-height:36px;',
+              onfocus: beginEdit,
+              oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
+              onblur: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.back=parseInt(d||'0',10)||0;
+                e.target.value=String(g.junkValue.back); endEdit();
+              }
+            })
+          ])
+        ])
+      ]);
+
+      // ---- card header
+      var namesA=(g.teamA||[]).map(playerName).join(' & ');
+      var namesB=(g.teamB||[]).map(playerName).join(' & ');
+
       blocks.push(
         h('div', { class: theme }, [
-          // your per-game header & pricing here,
-          grid
+          h('div', { class:'card' }, [
+            h('div', { class:'row', style:'align-items:center; justify-content:space-between;' }, [
+              h('div', { class:'pill' }, gameShortLabel(g)),
+              h('div', { class:'note' }, 'A: '+(namesA||'—')+'  |  B: '+(namesB||'—'))
+            ])
+          ]),
+          pricing,
+          grid,
+          h('div', { class:'note' }, 'Per-hole junk counts × Front/Back $ are included and doubled at team settlement.')
         ])
       );
+
+      // ---- AUTO-SCROLL to latest hole for THIS game
+      setTimeout(function(){
+        try{
+          // find the rightmost hole index with any nonzero junk entry among this game's players
+          var lastHole = -1;
+          for(var h=0; h<18; h++){
+            var any=false;
+            for(var pi=0; pi<pids.length; pi++){
+              var pid=pids[pi];
+              var arr=g.junkCounts[pid] || [];
+              var v=+arr[h] || 0;
+              if(v>0){ any=true; break; }
+            }
+            if(any) lastHole = h;
+          }
+
+          if(lastHole >= 0){
+            var col = document.getElementById('junk_col_'+g.id+'_'+lastHole);
+            var sc  = document.getElementById(scrollerId);
+            if(col && sc){
+              var target = Math.max(0, col.offsetLeft - sc.clientWidth*0.2);
+              sc.scrollLeft = target;
+            }
+          }
+        }catch(_e){}
+      }, 0);
     })(state.games[gi], gi);
   }
 
   return h('div', {}, blocks);
 }
+
 
  function screenGame(){
   var blocks=[];
