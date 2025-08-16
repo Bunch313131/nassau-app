@@ -115,6 +115,50 @@ Example: yourUser/yourRepo/main
     user-select:none;
   }
   table td input.junkBox{ opacity:1 !important; }
+/* Junk input + badge fixes */
+.junkWrap {
+  position: relative;
+}
+
+.junkBox {
+  width: 32px;
+  text-align: center;
+  font-size: 12px;
+  padding: 2px;
+}
+
+/* Number overlay inside cell */
+.junkVal {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+/* Theme-specific text colors */
+body.light .junkVal {
+  color: #000;  /* black for light mode */
+}
+
+body.dark .junkVal {
+  color: #fff;  /* white for dark mode */
+}
+/* Align F and B totals vertically middle */
+td[id^="junkF_"],
+td[id^="junkB_"] {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 600; /* optional: make them stand out */
+}
+/* One-line layout only; uses default input styles */
+.junkValueBar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:nowrap;
+}
+
 </style>
 </head>
 <body>
@@ -524,134 +568,259 @@ function fmtTeamPlayer(total){
   }
 
   function screenScores(){
-    var g0=state.games[0];
-    var lastHole=-1;
-    try{
-      for(var holeI=0; holeI<18; holeI++){
-        for(var pi=0; pi<state.players.length; pi++){
-          var pid=state.players[pi].id, v=g0 && g0.gross && g0.gross[pid] ? g0.gross[pid][holeI] : null;
-          if(v!=null && v!=='') lastHole=holeI;
+  var g0 = state.games[0];
+  var lastHole = -1;
+
+  // find rightmost hole that has any value to auto-scroll there
+  try{
+    for(var holeI=0; holeI<18; holeI++){
+      for(var pi=0; pi<state.players.length; pi++){
+        var pid = state.players[pi].id;
+        var v   = g0 && g0.gross && g0.gross[pid] ? g0.gross[pid][holeI] : null;
+        if(v != null && v !== '') lastHole = holeI;
+      }
+    }
+  }catch(_e){}
+
+  function updateSums(pid){
+    var arr = g0.gross[pid];
+    var f   = sumGrossRange(arr,0,8);
+    var b   = sumGrossRange(arr,9,17);
+    var tot = (f==null && b==null)? null : ((f||0)+(b||0));
+    var fEl = document.getElementById('sumF_'+pid),
+        bEl = document.getElementById('sumB_'+pid),
+        tEl = document.getElementById('sumT_'+pid);
+    if(fEl) fEl.textContent = (f==null?'':String(f));
+    if(bEl) bEl.textContent = (b==null?'':String(b));
+    if(tEl) tEl.textContent = (tot==null?'':String(tot));
+  }
+
+  // keyboard navigation (desktop + iPhone numpad arrows)
+  function moveFocusRelative(e, dir){ // dir: +1 down, -1 up (wrap)
+    var td    = e.target.closest("td");
+    var tr    = e.target.closest("tr");
+    var tbody = tr && tr.parentElement;
+    if(!td || !tr || !tbody) return;
+
+    var rows     = Array.from(tbody.children);
+    var rowIndex = rows.indexOf(tr);
+    var cellIndex= Array.prototype.indexOf.call(tr.children, td);
+
+    var nextIndex = (rowIndex + dir + rows.length) % rows.length;
+    var nextRow   = rows[nextIndex];
+    var nextCell  = nextRow && nextRow.children[cellIndex];
+    if(nextCell){
+      var nextInput = nextCell.querySelector("input");
+      if(nextInput){ nextInput.focus(); }
+    }
+  }
+
+  function grossInput(pid,hole){
+    return h('input',{
+      type:'tel', inputmode:'numeric', pattern:'[0-9]*', placeholder:'-',
+      value:(g0.gross[pid][hole]==null?'':String(g0.gross[pid][hole])),
+      onfocus: beginEdit,
+      oninput: function(e){
+        var d = e.target.value.replace(/[^0-9]/g,'');
+        if(d !== e.target.value) e.target.value = d;
+        var v = (d==='')? null : parseInt(d,10);
+        for(var gi=0; gi<state.games.length; gi++){
+          state.games[gi].gross[pid][hole] = (isNaN(v)? null : v);
+        }
+      },
+      onblur: function(e){
+        var d = e.target.value.replace(/[^0-9]/g,'');
+        var v = (d==='')? null : parseInt(d,10);
+        for(var gi=0; gi<state.games.length; gi++){
+          state.games[gi].gross[pid][hole] = (isNaN(v)? null : v);
+        }
+        e.target.value = (v==null?'':String(v));
+        updateSums(pid);
+        endEdit();
+      },
+      onkeydown: function(e){
+        if(e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp"){
+          e.preventDefault();
+          moveFocusRelative(e, (e.key === "ArrowUp") ? -1 : +1);
         }
       }
-    }catch(_e){}
+    });
+  }
 
-    function updateSums(pid){
-      var arr=g0.gross[pid], f=sumGrossRange(arr,0,8), b=sumGrossRange(arr,9,17), tot=(f==null && b==null)? null : ((f||0)+(b||0));
-      var fEl=document.getElementById('sumF_'+pid), bEl=document.getElementById('sumB_'+pid), tEl=document.getElementById('sumT_'+pid);
-      if(fEl) fEl.textContent=(f==null?'':String(f));
-      if(bEl) bEl.textContent=(b==null?'':String(b));
-      if(tEl) tEl.textContent=(tot==null?'':String(tot));
-    }
+  var head = [h('th',{class:'sticky'},'Player')];
+  for(var hi=0; hi<18; hi++) head.push(h('th',{id:'col_h_'+hi},String(hi+1)));
+  head.push(h('th',{},'F'), h('th',{},'B'), h('th',{},'TOT'));
 
-    function grossInput(pid,hole){
-      return h('input',{
-        type:'tel',inputmode:'numeric',pattern:'[0-9]*',placeholder:'-',
-        value:(g0.gross[pid][hole]==null?'':String(g0.gross[pid][hole])),
-        onfocus:beginEdit,
-        oninput:function(e){
-          var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d;
-          var v=(d==='')?null:parseInt(d,10);
-          for(var gi=0; gi<state.games.length; gi++){ state.games[gi].gross[pid][hole]=(isNaN(v)?null:v); }
-        },
-        onblur:function(e){
-          var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?null:parseInt(d,10);
-          for(var gi=0; gi<state.games.length; gi++){ state.games[gi].gross[pid][hole]=(isNaN(v)?null:v); }
-          e.target.value=(v==null?'':String(v)); updateSums(pid); endEdit();
-        }
-      });
-    }
-
-    var head=[h('th',{class:'sticky'},'Player')];
-    for(var hi=0; hi<18; hi++) head.push(h('th',{id:'col_h_'+hi},String(hi+1)));
-    head.push(h('th',{},'F'),h('th',{},'B'),h('th',{},'TOT'));
-
-    var rows=[];
-    for(var i=0;i<state.players.length;i++){
-      (function(p){
-        var cells=[h('td',{class:'sticky'},p.name)];
-        for(var hh=0; hh<18; hh++){
-          cells.push(h('td',{},[
+  var rows = [];
+  for(var i=0; i<state.players.length; i++){
+    (function(p){
+      var cells=[h('td',{class:'sticky'},p.name)];
+      for(var hh=0; hh<18; hh++){
+        cells.push(
+          h('td',{},[
             h('div',{class:'cellWrap'},[
               grossInput(p.id,hh),
               strokeDots(p.id,hh) || ''
             ])
-          ]));
-        }
-        var arr=g0.gross[p.id], f=sumGrossRange(arr,0,8), b=sumGrossRange(arr,9,17), tot=(f==null && b==null)? null : ((f||0)+(b||0));
-        cells.push(h('td',{id:'sumF_'+p.id},(f==null?'':String(f))));
-        cells.push(h('td',{id:'sumB_'+p.id},(b==null?'':String(b))));
-        cells.push(h('td',{id:'sumT_'+p.id},(tot==null?'':String(tot))));
-        rows.push(h('tr',{},cells));
-      })(state.players[i]);
-    }
-
-    var thead=h('thead',{},[h('tr',{},head)]), tbody=h('tbody',{},rows);
-    var scroller=h('div',{class:'card scroll',id:'scoresScroll'},[ h('table',{},[thead,tbody]) ]);
-
-    var root=h('div',{},[
-      h('div',{class:'row',style:'align-items:center;'},[
-        h('div',{class:'pill'},'Entering GROSS for all players'),
-        h('div',{class:'note'},'Sums update when you leave a cell.')
-      ]),
-      scroller
-    ]);
-
-    setTimeout(function(){
-      try{
-        if(lastHole>=0){
-          var col=document.getElementById('col_h_'+lastHole), sc=document.getElementById('scoresScroll');
-          if(col && sc){ var target=Math.max(0, col.offsetLeft - sc.clientWidth*0.2); sc.scrollLeft=target; }
-        }
-      }catch(_e){}
-    },0);
-
-    return root;
+          ])
+        );
+      }
+      var arr=g0.gross[p.id],
+          f=sumGrossRange(arr,0,8),
+          b=sumGrossRange(arr,9,17),
+          tot=(f==null && b==null)? null : ((f||0)+(b||0));
+      cells.push(h('td',{id:'sumF_'+p.id},(f==null?'':String(f))));
+      cells.push(h('td',{id:'sumB_'+p.id},(b==null?'':String(b))));
+      cells.push(h('td',{id:'sumT_'+p.id},(tot==null?'':String(tot))));
+      rows.push(h('tr',{},cells));
+    })(state.players[i]);
   }
+
+  var thead = h('thead',{},[h('tr',{},head)]);
+  var tbody = h('tbody',{},rows);
+  var scroller = h('div',{class:'card scroll', id:'scoresScroll'},[
+    h('table',{},[thead,tbody])
+  ]);
+
+  var root = h('div',{},[
+    h('div',{class:'row',style:'align-items:center;'},[
+      h('div',{class:'pill'},'Entering GROSS for all players'),
+      h('div',{class:'note'},'Use Enter / ↓ / ↑ to move; sums update on blur.')
+    ]),
+    scroller
+  ]);
+
+  setTimeout(function(){
+    try{
+      if(lastHole>=0){
+        var col = document.getElementById('col_h_'+lastHole),
+            sc  = document.getElementById('scoresScroll');
+        if(col && sc){
+          var target = Math.max(0, col.offsetLeft - sc.clientWidth*0.2);
+          sc.scrollLeft = target;
+        }
+      }
+    }catch(_e){}
+  },0);
+
+  return root;
+}
 
   function screenStatus(){
-    function diffsArray(g){ var a=[]; for(var i=0;i<18;i++) a.push(holeDiff(g,i)); return a; }
-    function curLine(diffs,line){ var sum=0,saw=false; for(var h=line.start; h<=line.end; h++){ var d=diffs[h]; if(d==null) break; saw=true; sum+=d; } return saw?sum:null; }
-    function seg(g,label,start,end,autoKey){
-      var sg=buildSegmentLines(g,start,end,0,!!g.autoPress[autoKey]); var diffs=diffsArray(g);
-      var parts=[], any=false;
-      for(var i=0;i<sg.lines.length;i++){ var L=sg.lines[i]; var c=curLine(diffs,L); if(c===null){ parts.push('—'); } else { any=true; parts.push(c>0?('+'+c):(c<0?String(c):'E')); } }
-      var text= any? parts.join(' / ') : 'No holes scored yet';
-      return h('div',{class:'card'},[
-        h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[ h('div',{class:'muted'},label+':'), h('div',{class:'pill'},text) ])
-      ]);
-    }
+  // --- helpers ---
+  function diffsArray(g){ var a=[]; for(var i=0;i<18;i++) a.push(holeDiff(g,i)); return a; }
+  function curLine(diffs,line){ var sum=0,saw=false; for(var h=line.start; h<=line.end; h++){ var d=diffs[h]; if(d==null) break; saw=true; sum+=d; } return saw?sum:null; }
 
-    var blocks=[ h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
-      h('label',{},[ h('input',{type:'checkbox',checked:!!state.debugStatus,onclick:function(e){ state.debugStatus=!!e.target.checked; queueSave(); render(); }}),' Show debug details' ])
-    ]) ];
-
-    for(var gi=0; gi<state.games.length; gi++){
-      (function(g,idx){
-        var theme=idx===0?'theme-g1':(idx===1?'theme-g2':(idx===2?'theme-g3':''));
-        blocks.push(h('div',{class:theme},[
-          h('div',{class:'card'},[
-            h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
-              h('div',{class:'pill'},gameShortLabel(g)),
-              h('div',{class:'note'},'Positive = Team A')
-            ]),
-            h('div',{class:'note'}, 'A: '+(g.teamA||[]).map(playerName).join(' & ')+'  |  B: '+(g.teamB||[]).map(playerName).join(' & ')),
-            seg(g,'Front',0,8,'front'),
-            seg(g,'Back',9,17,'back'),
-            seg(g,'Overall',0,17,'overall')
-          ])
-        ]));
-      })(state.games[gi],gi);
+  // Sum junk *points* (no $) for a team over a hole range
+  function junkPointsForRange(g, teamPids, start, end){
+    var t=0;
+    for(var i=0;i<teamPids.length;i++){
+      var pid=teamPids[i], arr=(g.junkCounts[pid]||[]);
+      for(var h=start; h<=end; h++) t += (+arr[h]||0);
     }
-    return h('div',{},blocks);
+    return t;
   }
 
-  function screenJunk(){
+  // segment row builder: shows Bets summary and Junk A/B counts
+ function seg(g,label,start,end,autoKey){
+  var sg = buildSegmentLines(g,start,end,0,!!g.autoPress[autoKey]);
+  var diffs = diffsArray(g);
+
+  // Build "Bets" text like "+4/+2/E"
+  var parts=[], any=false;
+  for(var i=0;i<sg.lines.length;i++){
+    var L=sg.lines[i];
+    var c=curLine(diffs,L);
+    if(c===null){ parts.push('—'); }
+    else { any=true; parts.push(c>0?('+'+c):(c<0?String(c):'E')); }
+  }
+  var betsText = any? parts.join(' / ') : '—';
+
+  // Junk point totals
+  var aPts = junkPointsForRange(g, g.teamA||[], start, end);
+  var bPts = junkPointsForRange(g, g.teamB||[], start, end);
+
+  return h('div',{class:'card'},[
+    h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+      h('div',{class:'muted'},label),
+      h('div',{class:'pill'},[
+        h('div',{},'Bets: '+betsText),
+        h('div',{},'Junk: A='+aPts+' B='+bPts)
+      ])
+    ])
+  ]);
+}
+
+  var blocks=[ h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+    h('label',{},[
+      h('input',{type:'checkbox',checked:!!state.debugStatus,onclick:function(e){ state.debugStatus=!!e.target.checked; queueSave(); render(); }}),
+      ' Show debug details'
+    ])
+  ]) ];
+
+  for(var gi=0; gi<state.games.length; gi++){
+    (function(g,idx){
+      var theme=idx===0?'theme-g1':(idx===1?'theme-g2':(idx===2?'theme-g3':''));
+      blocks.push(h('div',{class:theme},[
+        h('div',{class:'card'},[
+          h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
+            h('div',{class:'pill'},gameShortLabel(g)),
+            h('div',{class:'note'},'Positive = Team A')
+          ]),
+          h('div',{class:'note'}, 'A: '+(g.teamA||[]).map(playerName).join(' & ')+'  |  B: '+(g.teamB||[]).map(playerName).join(' & ')),
+
+          // Segment rows with Bets + Junk (points)
+          seg(g,'Front (1–9)',    0, 8, 'front'),
+          seg(g,'Back (10–18)',   9,17, 'back'),
+          seg(g,'Overall (1–18)', 0,17, 'overall')
+        ])
+      ]));
+    })(state.games[gi],gi);
+  }
+  return h('div',{},blocks);
+}
+
+ function screenJunk(){
   var blocks = [];
+
+  // helper: sum [start..end] inclusive for a player's junk array
+  function sumJunkRange(arr, start, end){
+    var t = 0, any = false;
+    for(var i = start; i <= end; i++){
+      var v = arr && arr[i];
+      if(v != null && isFinite(+v)){
+        t += +v;
+        any = true;
+      }
+    }
+    return any ? t : null;
+  }
 
   for (var gi = 0; gi < state.games.length; gi++){
     (function(g, idx){
-      var pids = [].concat(g.teamA || [], g.teamB || []);
+      var pids  = [].concat(g.teamA || [], g.teamB || []);
       var theme = idx===0 ? 'theme-g1' : (idx===1 ? 'theme-g2' : (idx===2 ? 'theme-g3' : ''));
+      var tableIdPrefix = 'junk_' + (g.id || ('g' + idx));
+      var scrollId = tableIdPrefix + '_scroll';
+
+      function moveFocusRelative(e, dir){ // dir: +1 down, -1 up (wrap)
+        var td = e.target.closest("td");
+        var tr = e.target.closest("tr");
+        var tbody = tr && tr.parentElement;
+        if(!td || !tr || !tbody) return;
+
+        var rows = Array.from(tbody.children);
+        var rowIndex = rows.indexOf(tr);
+        var cellIndex = Array.prototype.indexOf.call(tr.children, td);
+
+        var nextIndex = (rowIndex + dir + rows.length) % rows.length;
+        var nextRow = rows[nextIndex];
+        var nextCell = nextRow && nextRow.children[cellIndex];
+        if(nextCell){
+          var nextInput = nextCell.querySelector("input");
+          if(nextInput){ nextInput.focus(); }
+        }
+      }
 
       function junkInput(pid, hole, gRef){
         if(!gRef.junkCounts[pid]) gRef.junkCounts[pid] = make18(0);
@@ -686,17 +855,38 @@ function fmtTeamPlayer(total){
               e.target.value = (v === 0 ? '' : String(v));
               badge.textContent = (v === 0 ? '' : String(v));
               try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(cloneForSave())); }catch(_e){}
+            },
+            onkeydown: function(e){
+              if(e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp"){
+                e.preventDefault();
+                moveFocusRelative(e, (e.key === "ArrowUp") ? -1 : +1);
+              }
             }
           }),
           badge
         ]);
       }
 
-      // Header row
-      var head = [ h('th', { class:'sticky' }, 'Player') ];
-      for (var j=0; j<18; j++) head.push(h('th', {}, String(j+1)));
+      // find the rightmost hole index that has any junk > 0 for this game
+      var lastHole = -1;
+      try{
+        for(var holeI=0; holeI<18; holeI++){
+          for(var pi=0; pi<pids.length; pi++){
+            var pid = pids[pi];
+            var v = g && g.junkCounts && g.junkCounts[pid] ? g.junkCounts[pid][holeI] : 0;
+            if(v && +v !== 0){ lastHole = holeI; }
+          }
+        }
+      }catch(_e){}
 
-      // Body rows
+      // Header row (Player + 1..18 + F + B)
+      var head = [ h('th', { class:'sticky' }, 'Player') ];
+      for (var j=0; j<18; j++){
+        head.push(h('th', { id: tableIdPrefix + '_h_' + j }, String(j+1)));
+      }
+      head.push(h('th', {}, 'F'), h('th', {}, 'B'));
+
+      // Body rows with per-player F/B totals
       var rows = [];
       for (var i=0; i<pids.length; i++){
         (function(pid){
@@ -704,46 +894,58 @@ function fmtTeamPlayer(total){
           for (var hIdx=0; hIdx<18; hIdx++){
             cells.push( h('td', {}, [ junkInput(pid, hIdx, g) ]) );
           }
+          // totals
+          var f = sumJunkRange(g.junkCounts[pid], 0, 8);
+          var b = sumJunkRange(g.junkCounts[pid], 9, 17);
+          cells.push( h('td', { style:'vertical-align:middle;' }, f==null ? '' : String(f)) );
+          cells.push( h('td', { style:'vertical-align:middle;' }, b==null ? '' : String(b)) );
           rows.push( h('tr', {}, cells) );
         })(pids[i]);
       }
 
       var thead  = h('thead', {}, [ h('tr', {}, head) ]);
       var tbody  = h('tbody', {}, rows);
-      var grid   = h('div', { class:'card scroll' }, [ h('table', {}, [ thead, tbody ]) ]);
+      var grid   = h('div', { class:'card scroll', id: scrollId }, [ h('table', {}, [ thead, tbody ]) ]);
 
-      // Per‑game junk pricing editors
+      // Per-game junk pricing editors
       var pricing = h('div', { class:'card' }, [
-        h('div', { class:'row', style:'align-items:center; gap:12px;' }, [
-          h('div', { class:'pill' }, 'Junk $/point'),
-          h('div', {}, [
-            h('div', { class:'muted' }, 'Front'),
-            h('input', {
-              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
-              value: g.junkValue.front,
-              onfocus: beginEdit,
-              oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
-              onblur: function(e){
-                var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.front=parseInt(d||'0',10)||0;
-                e.target.value=String(g.junkValue.front); endEdit();
-              }
-            })
-          ]),
-          h('div', {}, [
-            h('div', { class:'muted' }, 'Back'),
-            h('input', {
-              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
-              value: g.junkValue.back,
-              onfocus: beginEdit,
-              oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
-              onblur: function(e){
-                var d=e.target.value.replace(/[^0-9]/g,''); g.junkValue.back=parseInt(d||'0',10)||0;
-                e.target.value=String(g.junkValue.back); endEdit();
-              }
-            })
-          ])
-        ])
-      ]);
+  h('div', { class:'junkValueBar' }, [
+    h('div', { class:'pill' }, 'Junk $/point:'),
+    h('div', { class:'muted' }, 'Front'),
+    h('input', {
+      type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+      value: g.junkValue.front,
+      onfocus: beginEdit,
+      oninput: function(e){
+        var d=e.target.value.replace(/[^0-9]/g,'');
+        if(d!==e.target.value) e.target.value=d;
+      },
+      onblur: function(e){
+        var d=e.target.value.replace(/[^0-9]/g,'');
+        g.junkValue.front = parseInt(d||'0',10)||0;
+        e.target.value = String(g.junkValue.front);
+        endEdit();
+      }
+    }),
+    h('div', { class:'muted' }, 'Back'),
+    h('input', {
+      type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+      value: g.junkValue.back,
+      onfocus: beginEdit,
+      oninput: function(e){
+        var d=e.target.value.replace(/[^0-9]/g,'');
+        if(d!==e.target.value) e.target.value=d;
+      },
+      onblur: function(e){
+        var d=e.target.value.replace(/[^0-9]/g,'');
+        g.junkValue.back = parseInt(d||'0',10)||0;
+        e.target.value = String(g.junkValue.back);
+        endEdit();
+      }
+    })
+  ])
+]);
+
 
       // Card header
       var namesA=(g.teamA||[]).map(playerName).join(' & ');
@@ -762,12 +964,26 @@ function fmtTeamPlayer(total){
           h('div', { class:'note' }, 'Per-hole junk counts × Front/Back $ are included and doubled at team settlement.')
         ])
       );
+
+      // Auto-scroll this game's grid to last hole if any
+      setTimeout(function(){
+        try{
+          if(lastHole >= 0){
+            var col = document.getElementById(tableIdPrefix + '_h_' + lastHole);
+            var sc  = document.getElementById(scrollId);
+            if(col && sc){
+              var target = Math.max(0, col.offsetLeft - sc.clientWidth * 0.2);
+              sc.scrollLeft = target;
+            }
+          }
+        }catch(_e){}
+      }, 0);
+
     })(state.games[gi], gi);
   }
 
   return h('div', {}, blocks);
 }
-
  function screenGame(){
   var blocks=[];
 
