@@ -571,37 +571,54 @@ function fmtTeamPlayer(total){
   }
 
   function strokesEditor(game){
-    var pids=[].concat(game.teamA||[],game.teamB||[]);
-    var rows=[];
-    for(var i=0;i<pids.length;i++){
+  function teamRow(label, ids){
+    var kids = [ h('div',{class:'muted', style:'min-width:68px;'}, label) ];
+    for(var i=0;i<ids.length;i++){
       (function(pid){
-        rows.push(h('div',{class:'row',style:'align-items:center; gap:12px;'},[
-          h('div',{class:'muted'},playerName(pid)),
-          h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*',
-            value:game.strokesCount[pid]||0,
-            onfocus:beginEdit,
-            oninput:function(e){
-              var d=e.target.value.replace(/[^0-9]/g,'');
-              if(d!==e.target.value) e.target.value=d;
-            },
-            onblur:function(e){
-              var d=e.target.value.replace(/[^0-9]/g,'');
-              game.strokesCount[pid]=parseInt(d||'0',10)||0;
-              e.target.value=String(game.strokesCount[pid]||0);
-              endEdit();
-            }
-          }),
-          h('div',{class:'note'},'strokes applied on HCP 1…n across 18')
-        ]));
-      })(pids[i]);
+        kids.push(
+          h('div',{class:'row', style:'align-items:center; gap:8px;'},[
+            h('div', {class:'muted'}, playerName(pid)),
+            h('input',{
+              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+              value: game.strokesCount[pid]||0,
+              style:'width:72px; text-align:center;',
+              onfocus: beginEdit,
+              oninput: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,'');
+                if(d!==e.target.value) e.target.value=d;
+              },
+              onblur: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,'');
+                game.strokesCount[pid]=parseInt(d||'0',10)||0;
+                e.target.value=String(game.strokesCount[pid]||0);
+                endEdit();
+              }
+            })
+          ])
+        );
+      })(ids[i]);
     }
-    if(!pids.length)
-      rows.push(h('div',{class:'note'},'Pick 2 players for each team to edit strokes.'));
-    return h('div',{class:'card'},[
-      h('div',{class:'pill'},'Strokes (per player for this game)'),
-      h('div',{},rows)
-    ]);
+    return h('div', {class:'row', style:'align-items:center; gap:16px; flex-wrap:wrap;'}, kids);
   }
+
+  var anyA = (game.teamA||[]).length;
+  var anyB = (game.teamB||[]).length;
+
+  var body = [];
+  if(anyA) body.push( teamRow('Team A:', game.teamA) );
+  if(anyB) body.push( teamRow('Team B:', game.teamB) );
+  if(!anyA && !anyB){
+    body.push(h('div',{class:'note'},'Pick 2 players for each team to edit strokes.'));
+  } else {
+    body.push(h('div',{class:'note'},'Strokes apply on HCP 1…n across 18.'));
+  }
+
+  return h('div',{class:'card'},[
+    h('div',{class:'pill'},'Strokes (per player for this game)'),
+    h('div',{}, body)
+  ]);
+}
+
 
   var gamesCardChildren=[
     h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
@@ -717,6 +734,7 @@ function fmtTeamPlayer(total){
 
   return h('div',{},[ playersCard, courseCard(), h('div',{},gamesCardChildren) ]);
 }
+
  function screenScores(){
   var g0=state.games[0];
   var lastHole=-1;
