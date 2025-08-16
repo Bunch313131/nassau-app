@@ -158,6 +158,28 @@ td[id^="junkB_"] {
   gap:12px;
   flex-wrap:nowrap;
 }
+/* --- Junk input legibility fix (doesn't change box sizing) --- */
+.junkBox{
+  font-size: 17px !important;      /* >=16 prevents iOS weirdness */
+  line-height: normal !important;  /* stop the tight 32px line-height effect */
+  height: auto !important;         /* let global min-height:44px apply */
+  -webkit-text-size-adjust: 100% !important;
+  text-rendering: optimizeLegibility;
+}
+
+.junkVal{
+  font-size: 17px !important;      /* match overlay badge to input */
+  line-height: 1 !important;
+}
+
+@media (prefers-color-scheme: light){
+  .junkBox, .junkVal { color:#0f172a !important; }
+}
+
+/* iOS-only nudge to keep glyphs from looking shrunken */
+@supports (-webkit-touch-callout: none){
+  .junkBox, .junkVal { font-size: 18px !important; }
+}
 
 </style>
 </head>
