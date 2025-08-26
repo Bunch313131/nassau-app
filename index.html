@@ -663,7 +663,7 @@ for(var ph=0; ph<18; ph++){
             // NEW: Scoring mode + team size
             h('div',{class:'grid grid-3', style:'gap:18px 32px; margin:6px 0;'},[
   h('div',{},[
-    h('div',{class:'muted'},'Nassau Scoring'),
+    h('div',{class:'muted'},'Nassau Type'),
     h('label',{style:'display:block; margin-top:6px; padding-right:6px; white-space:nowrap;'},[
       h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',
         onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low'
