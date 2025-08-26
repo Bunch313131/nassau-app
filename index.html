@@ -1049,7 +1049,9 @@ function applyPresetByName(name){
 function shareResults(){
   try {
     var lines = [];
-    
+    lines.push("Round Summary from Bunch Bets:");
+    lines.push(""); // blank line for spacing
+
     // --- Player gross score summary ---
     lines.push("Player Scores:");
     for (var pi=0; pi<state.players.length; pi++){
