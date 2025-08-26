@@ -149,6 +149,20 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
 @media (max-width: 420px){
   .game-options { grid-template-columns: 1fr !important; gap: 12px 16px !important; }
 }
+/* Force Nassau Scoring | Team Size into 2 columns on normal phones */
+.game-options-row{
+  display:grid;
+  grid-template-columns: minmax(0,1.2fr) minmax(0,0.8fr);
+  gap:16px 20px;
+  align-items:start;
+}
+
+/* Only stack on *very* small screens */
+@media (max-width: 360px){
+  .game-options-row{
+    grid-template-columns: 1fr;
+  }
+}
 
 </style>
 </head>
@@ -670,33 +684,30 @@ for(var ph=0; ph<18; ph++){
               ])
             ]),
 
-// NEW: Nassau Scoring + Team Size (side by side always)
-h('div',{
-  class:'game-options',
-  style:'display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,0.8fr); gap:16px 20px; margin:6px 0; align-items:start;'
-},[
-  h('div',{},[
-    h('div',{class:'muted nowrap'},'Nassau Scoring'),
-    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
-      h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',
-        onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low'
-    ]),
-    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
-      h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',
-        onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Best Ball'
-    ])
+// NEW: Nassau Scoring + Team Size (always side-by-side on phones)
+h('div',{class:'game-options-row', style:'margin:6px 0;'},[
+ h('div',{},[
+  h('div',{class:'muted nowrap'},'Nassau Scoring'),
+  h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',
+      onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low'
   ]),
-  h('div',{style:'padding-left:8px;'},[
-    h('div',{class:'muted nowrap'},'Team Size'),
-    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
-      h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===2,
-        onchange:function(){ g.teamSize=2; queueSave(); render(); }}),' 2v2'
-    ]),
-    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
-      h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===1,
-        onchange:function(){ g.teamSize=1; g.teamA=g.teamA.slice(0,1); g.teamB=g.teamB.slice(0,1); queueSave(); render(); }}),' 1v1'
-    ])
+  h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',
+      onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Low Net (1 ball)'
   ])
+]),
+h('div',{style:'padding-left:8px;'},[
+  h('div',{class:'muted nowrap'},'Team Size'),
+  h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===2,
+      onchange:function(){ g.teamSize=2; queueSave(); render(); }}),' 2v2'
+  ]),
+  h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===1,
+      onchange:function(){ g.teamSize=1; g.teamA=g.teamA.slice(0,1); g.teamB=g.teamB.slice(0,1); queueSave(); render(); }}),' 1v1'
+  ])
+])
 ]),
 
 // Note block (below row)
