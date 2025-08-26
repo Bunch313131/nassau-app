@@ -1159,14 +1159,29 @@ if (headerEl) headerEl.style.display = (state.tab === 'setup' ? '' : 'none');
 
   function wrapThemes(viewNode){ var wrap=h('div',{},[]); wrap.appendChild(viewNode); return wrap; }
 
-  document.getElementById('resetBtn').addEventListener('click', function(){
-    if(!confirm('Start a brand-new round? This clears all scores/junk and resets teams/stakes to defaults.')) return;
-    try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
-    state.players=[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}];
-    state.games=[]; var ng=makeNewGame(false); state.games=[ng]; state.activeGameId=ng.id;
-    state.course={name:'El Macero Temp', hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6]};
-    saveState(); render();
-  });
+ document.getElementById('resetBtn').addEventListener('click', function(){
+  if(!confirm('Start a brand-new round? This clears all scores/junk and resets teams/stakes to defaults.')) return;
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
+
+  state.players=[
+    {id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}
+  ];
+  state.games=[];
+  var ng=makeNewGame(false);
+  state.games=[ng];
+  state.activeGameId=ng.id;
+
+  // Fully reset course (HCP + PAR + name)
+  state.course={
+    name:'El Macero Temp',
+    hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
+    par:[4,5,3,4,5,4,3,4,4,4,5,3,4,5,4,3,4,4]
+  };
+
+  saveState();
+  render();
+});
+
   document.getElementById('clearBtn').addEventListener('click', function(){
     if(!confirm('Clear all scores & junk for this round and remove the saved snapshot? Teams, stakes, strokes, and course stay the same.')) return;
     try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
