@@ -120,8 +120,8 @@
   <div class="row" style="align-items:center; justify-content:space-between;">
     <h1>Bunch Bets (Build 3.0)</h1>
     <div class="row" style="align-items:center;">
-      <button class="btn small" id="resetBtn">Reset</button>
-      <button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Save</button>
+    <button class="btn small" id="resetBtn">New Round</button>
+<button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Scores</button>
     </div>
   </div>
 </header>
@@ -631,16 +631,28 @@ for(var ph=0; ph<18; ph++){
             ]),
 
             // NEW: Scoring mode + team size
-            h('div',{class:'grid grid-3'},[
+            h('div',{class:'grid grid-3', style:'gap:18px 28px; margin:6px 0;'},[
               h('div',{},[
-                h('div',{class:'muted'},'Scoring Mode'),
-                h('label',{},[ h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low' ]),
-                h('label',{},[ h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Low Net (1 ball)' ])
+  h('div',{class:'muted'},'Scoring Mode'),
+  h('label',{style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',
+      onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low'
+  ]),
+  h('label',{style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',
+      onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Low Net (1 ball)'
+  ])
               ]),
-              h('div',{},[
-                h('div',{class:'muted'},'Team Size'),
-                h('label',{},[ h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===1,onchange:function(){ g.teamSize=1; g.teamA=g.teamA.slice(0,1); g.teamB=g.teamB.slice(0,1); queueSave(); render(); }}),' 1v1' ]),
-                h('label',{},[ h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===2,onchange:function(){ g.teamSize=2; queueSave(); render(); }}),' 2v2' ])
+             h('div',{},[
+  h('div',{class:'muted'},'Team Size'),
+  h('label',{style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===2,
+      onchange:function(){ g.teamSize=2; queueSave(); render(); }}),' 2v2'
+  ]),
+  h('label',{style:'display:block; margin-top:6px;'},[
+    h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===1,
+      onchange:function(){ g.teamSize=1; g.teamA=g.teamA.slice(0,1); g.teamB=g.teamB.slice(0,1); queueSave(); render(); }}),' 1v1'
+  ])
               ]),
               (g.scoringMode==='hi_low' && (g.teamSize||2)===1 ? h('div',{},[ h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Low Net for presses and status.') ]) : h('div',{}))
             ]),
@@ -1017,6 +1029,10 @@ function applyPresetByName(name){
       else if(state.tab==='game') view=wrapThemes(screenGame());
       else if(state.tab==='transactions') view=wrapThemes(screenTransactions());
       else view=wrapThemes(screenGame());
+      // Hide the header on all tabs except Setup
+var headerEl = document.querySelector('header');
+if (headerEl) headerEl.style.display = (state.tab === 'setup' ? '' : 'none');
+
       root.appendChild(view);
       errBox.style.display='none';
     }catch(e){ errBox.style.display='block'; errBox.textContent='Render failed: '+(e && e.message ? e.message : String(e)); console.error(e); }
@@ -1033,7 +1049,7 @@ function applyPresetByName(name){
     saveState(); render();
   });
   document.getElementById('clearBtn').addEventListener('click', function(){
-    if(!confirm('Clear saved data and wipe current scores/junk in this session?')) return;
+    if(!confirm('Clear all scores & junk for this round and remove the saved snapshot? Teams, stakes, strokes, and course stay the same.')) return;
     try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
     for(var gi=0; gi<state.games.length; gi++){
       var g=state.games[gi];
@@ -1041,7 +1057,7 @@ function applyPresetByName(name){
         var pid=state.players[pi].id; g.gross[pid]=make18(null); g.junkCounts[pid]=make18(0);
       }
     }
-    saveState(); render(); alert('Saved data cleared and round scores wiped.');
+    saveState(); render(); alert('Scores & junk cleared. Saved snapshot was removed.');
   });
 
   render();
