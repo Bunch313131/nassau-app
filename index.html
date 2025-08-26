@@ -670,10 +670,10 @@ for(var ph=0; ph<18; ph++){
               ])
             ]),
 
-// NEW: Scoring mode + team size (nowrap + spacing)
+// NEW: Scoring mode + team size (2 columns; note below)
 h('div',{
-  class:'grid grid-3 game-options',
-  style:'gap:18px 32px; margin:6px 0; grid-template-columns:1.25fr 1fr 1fr;'
+  class:'grid grid-2 game-options',
+  style:'gap:16px 24px; margin:6px 0; grid-template-columns:1fr 1fr;'
 },[
   h('div',{},[
     h('div',{class:'muted nowrap'},'Nassau Scoring'),
@@ -683,10 +683,10 @@ h('div',{
     ]),
     h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
       h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',
-        onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Best Ball'
+        onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Low Net (1 ball)'
     ])
   ]),
-  h('div',{style:'padding-left:14px;'},[
+  h('div',{style:'padding-left:12px;'},[
     h('div',{class:'muted nowrap'},'Team Size'),
     h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
       h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===2,
@@ -696,11 +696,15 @@ h('div',{
       h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===1,
         onchange:function(){ g.teamSize=1; g.teamA=g.teamA.slice(0,1); g.teamB=g.teamB.slice(0,1); queueSave(); render(); }}),' 1v1'
     ])
-  ]),
-  (g.scoringMode==='hi_low' && (g.teamSize||2)===1
-    ? h('div',{},[ h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Low Net for presses and status.') ])
-    : h('div',{}))
+  ])
 ]),
+
+// Note moved *below* the 2-column row so it can wrap independently
+(g.scoringMode==='hi_low' && (g.teamSize||2)===1
+  ? h('div',{style:'margin-top:4px;'},[
+      h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Low Net for presses and status.')
+    ])
+  : h('div',{})),
 
             h('div',{class:'grid grid-2'},[
               h('div',{},[ h('div',{class:'muted'},'Team A (pick '+(g.teamSize||2)+')'), teamButtons(g,'A') ]),
