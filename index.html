@@ -139,6 +139,16 @@ label.radio-nowrap {
   white-space: nowrap;
   padding-right: 6px;
 }
+/* keep short headings/labels on one line */
+.nowrap { white-space: nowrap; }
+
+/* radios: a hair of padding so text doesn't crowd */
+label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
+
+/* on very small phones, stack the row instead of ugly wraps */
+@media (max-width: 420px){
+  .game-options { grid-template-columns: 1fr !important; gap: 12px 16px !important; }
+}
 
 </style>
 </head>
@@ -660,33 +670,37 @@ for(var ph=0; ph<18; ph++){
               ])
             ]),
 
-            // NEW: Scoring mode + team size
-            h('div',{class:'grid grid-3', style:'gap:18px 32px; margin:6px 0;'},[
+// NEW: Scoring mode + team size (nowrap + spacing)
+h('div',{
+  class:'grid grid-3 game-options',
+  style:'gap:18px 32px; margin:6px 0; grid-template-columns:1.25fr 1fr 1fr;'
+},[
   h('div',{},[
-    h('div',{class:'muted'},'Nassau Type'),
-    h('label',{style:'display:block; margin-top:6px; padding-right:6px; white-space:nowrap;'},[
+    h('div',{class:'muted nowrap'},'Nassau Scoring'),
+    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
       h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',
         onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low'
     ]),
-    h('label',{style:'display:block; margin-top:6px; padding-right:6px; white-space:nowrap;'},[
+    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
       h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',
-        onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Low Net (1 ball)'
+        onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Best Ball'
     ])
   ]),
-  h('div',{style:'padding-left:12px;'},[   // <— added padding here
-    h('div',{class:'muted'},'Team Size'),
-    h('label',{style:'display:block; margin-top:6px; white-space:nowrap;'},[
+  h('div',{style:'padding-left:14px;'},[
+    h('div',{class:'muted nowrap'},'Team Size'),
+    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
       h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===2,
         onchange:function(){ g.teamSize=2; queueSave(); render(); }}),' 2v2'
     ]),
-    h('label',{style:'display:block; margin-top:6px; white-space:nowrap;'},[
+    h('label',{class:'radio-nowrap', style:'display:block; margin-top:6px;'},[
       h('input',{type:'radio',name:'ts_'+g.id,checked:(g.teamSize||2)===1,
         onchange:function(){ g.teamSize=1; g.teamA=g.teamA.slice(0,1); g.teamB=g.teamB.slice(0,1); queueSave(); render(); }}),' 1v1'
-   
-  ])
-              ]),
-              (g.scoringMode==='hi_low' && (g.teamSize||2)===1 ? h('div',{},[ h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Low Net for presses and status.') ]) : h('div',{}))
-            ]),
+    ])
+  ]),
+  (g.scoringMode==='hi_low' && (g.teamSize||2)===1
+    ? h('div',{},[ h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Low Net for presses and status.') ])
+    : h('div',{}))
+]),
 
             h('div',{class:'grid grid-2'},[
               h('div',{},[ h('div',{class:'muted'},'Team A (pick '+(g.teamSize||2)+')'), teamButtons(g,'A') ]),
