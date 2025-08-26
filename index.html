@@ -31,6 +31,28 @@
   .card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:none; }
   .btn{ background:var(--card); border:1px solid var(--border); border-radius:999px; padding:8px 12px; cursor:pointer; color:var(--txt); }
   .btn.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
+  .btn.danger {
+  background: #dc2626;   /* Tailwind red-600 */
+  border-color: #dc2626;
+  color: #fff;
+}
+.btn.danger:hover {
+  background: #b91c1c;   /* darker red */
+  border-color: #b91c1c;
+}
+.btn.share {
+  background: linear-gradient(90deg, #3b82f6, #2563eb); /* blue gradient */
+  border-color: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.35);
+}
+.btn.share:hover {
+  background: linear-gradient(90deg, #2563eb, #1e40af);
+  border-color: #1e40af;
+}
+
+
   .btn.small{ padding:6px 10px; font-size:14px; }
   .pill{ border:1px solid var(--border); padding:6px 10px; border-radius:999px; display:inline-block; background:rgba(255,255,255,0.02); }
   .grid{ display:grid; gap:8px; }
@@ -972,6 +994,16 @@ if (lastJunkHole >= 0) {
   }
 
   function screenTransactions(){
+          // --- Share Button ---
+    var shareBtn = h('div',{style:'margin-bottom:12px;'},[
+   h('button',{
+  class:'btn small share',
+  onclick:function(){ shareResults(); }
+},'Share Results')
+
+
+    ]);
+
     var net={}; for(var pi=0; pi<state.players.length; pi++) net[state.players[pi].id]=0;
     var perGameRows=[];
     for(var gi=0; gi<state.games.length; gi++){
@@ -993,6 +1025,7 @@ if (lastJunkHole >= 0) {
     }
 
     return h('div',{},[
+        shareBtn,
       h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Game Totals (to Team A)'), (perGameRows.length? h('ul',{},perGameRows) : h('div',{class:'muted'},'No games yet.')) ]),
       h('div',{class:'card'},[ h('div',{class:'pill'},'Per-Player Net (All Games + Junk)') , h('ul',{},perList) ]),
       h('div',{class:'card'},[ h('div',{class:'pill'},'Least-Cash Transfers'), (xfers.length? h('ul',{},xfList) : h('div',{class:'muted'},'All square.')) ]),
@@ -1013,6 +1046,92 @@ function applyPresetByName(name){
   state.course.par = par;
   queueSave(); render();
 }
+function shareResults(){
+  try {
+    var lines = [];
+    
+    // --- Player gross score summary ---
+    lines.push("Player Scores:");
+    for (var pi=0; pi<state.players.length; pi++){
+      var p = state.players[pi];
+      // use first game’s gross as the source (all games mirror the entry)
+      var g0 = state.games[0];
+      var arr = g0.gross[p.id] || [];
+      var f = sumGrossRange(arr,0,8);
+      var b = sumGrossRange(arr,9,17);
+      var t = (f==null && b==null)? null : ((f||0)+(b||0));
+      lines.push("  "+p.name+": "
+                 +(f==null?"-":f)+" / "
+                 +(b==null?"-":b)+" / "
+                 +(t==null?"-":t));
+    }
+    lines.push(""); // blank line after scores
+
+    // --- Game summaries ---
+    for (var gi=0; gi<state.games.length; gi++){
+      var gm = state.games[gi];
+      var res = computeGameResult(gm);
+      lines.push(gameShortLabel(gm));
+      lines.push('  Front:   '+fmt(res.teamTotals.front));
+      lines.push('  Back:    '+fmt(res.teamTotals.back));
+      lines.push('  Overall: '+fmt(res.teamTotals.overall));
+      lines.push('  Junk:    '+fmt(res.teamTotals.junk));
+      lines.push('  Total:   '+fmt(res.teamTotals.total));
+      lines.push('');
+    }
+
+    // --- Per-player net ---
+    var net={};
+    for(var pi=0; pi<state.players.length; pi++) net[state.players[pi].id]=0;
+    for(var gi=0; gi<state.games.length; gi++){
+      var gm=state.games[gi], r=computeGameResult(gm), total=r.teamTotals.total;
+      var sizeA=(gm.teamA||[]).length||1, sizeB=(gm.teamB||[]).length||1;
+      var aShare=sizeA? (total/sizeA) : 0;
+      var bShare=sizeB? (-total/sizeB) : 0;
+      (gm.teamA||[]).forEach(function(id){ net[id]+=aShare; });
+      (gm.teamB||[]).forEach(function(id){ net[id]+=bShare; });
+    }
+    lines.push('Per-Player Net:');
+    for (var pi=0; pi<state.players.length; pi++){
+      var p=state.players[pi];
+      lines.push('  '+p.name+': '+fmt(net[p.id]));
+    }
+
+    // --- Transfers ---
+    var xfers=settleMinimalCash(net);
+    if (xfers.length){
+      lines.push('');
+      lines.push('Transfers:');
+      xfers.forEach(function(x){
+        lines.push('  '+playerName(x.from)+' → '+playerName(x.to)+' : '+fmt(x.amount));
+      });
+    }
+
+    var txt = lines.join('\n');
+
+    // --- Share sheet on mobile (if supported) ---
+    if (navigator.share){
+      navigator.share({ text: txt }).catch(function(){
+        alert(txt); // fallback if user cancels or it fails
+      });
+      return;
+    }
+
+    // --- SMS draft (if supported) ---
+    var smsLink = 'sms:?&body='+encodeURIComponent(txt);
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      window.location.href = smsLink;
+    } else {
+      // --- Desktop fallback ---
+      console.log(txt);
+      alert(txt);
+    }
+
+  } catch(e){
+    alert('Could not generate share text: '+e.message);
+  }
+}
+
 
 
   // ===== Render =====
