@@ -655,14 +655,14 @@ for(var ph=0; ph<18; ph++){
             // NEW: Scoring mode + team size
             h('div',{class:'grid grid-3', style:'gap:18px 28px; margin:6px 0;'},[
               h('div',{},[
-  h('div',{class:'muted'},'Scoring Mode'),
+  h('div',{class:'muted'},'Nassau Scoring'),
   h('label',{style:'display:block; margin-top:6px;'},[
     h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='hi_low',
       onchange:function(){ g.scoringMode='hi_low'; queueSave(); render(); }}),' Hi/Low'
   ]),
   h('label',{style:'display:block; margin-top:6px;'},[
     h('input',{type:'radio',name:'mode_'+g.id,checked:g.scoringMode==='low_net',
-      onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Low Net (1 ball)'
+      onchange:function(){ g.scoringMode='low_net'; queueSave(); render(); }}),' Best Ball'
   ])
               ]),
              h('div',{},[
@@ -715,8 +715,8 @@ for(var ph=0; ph<18; ph++){
             ]),
 
             // Junk $/point
-            h('div',{class:'row',style:'align-items:center; gap:12px; margin-top:8px;'},[
-              h('div',{class:'pill'},'Junk $/point'),
+            h('div',{class:'row',style:'align-items:center; gap:12px; margin-top:8px; margin-bottom:12px;'},[
+                h('div',{class:'pill'},'Junk $/point'),
               h('div',{},[
                 h('div',{class:'muted'},'Front'),
                 h('input',{type:'tel',inputmode:'numeric',pattern:'[0-9]*', value:g.junkValue.front, style:'width:64px;text-align:center;',
