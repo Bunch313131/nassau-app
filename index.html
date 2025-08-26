@@ -143,7 +143,9 @@
     <h1>Bunch Bets (Build 3.0)</h1>
     <div class="row" style="align-items:center;">
     <button class="btn small" id="resetBtn">New Round</button>
-<button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Scores</button>
+    <button class="btn small" id="clearBtn" style="margin-left:6px;">Clear Scores</button>
+    <button class="btn small" id="factoryBtn" style="margin-left:6px;">Factory Reset</button>
+
     </div>
   </div>
 </header>
@@ -173,10 +175,11 @@
     players:[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}],
     games:[],
     activeGameId:null,
-    course:{ name:'El Macero Temp',
-  hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
-  par:[4,5,3,4,5,4,3,4,4,4,5,3,4,5,4,3,4,4] // default for Temp
+    course:{ name:'El Macero',
+  hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16],
+  par:[4,5,3,4,5,4,3,4,4,4,4,3,4,4,5,3,4,5] // default for El Macero
 }
+
 
 
   };
@@ -274,15 +277,15 @@
 
   function migrateState(){
     if(!state.course || !Array.isArray(state.course.hcp) || state.course.hcp.length!==18){
-      state.course={name:'El Macero Temp',
-  hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
-  par:[4,5,3,4,5,4,3,4,4,4,5,3,4,5,4,3,4,4]
-};
-if(!state.course.par || state.course.par.length!==18){
-  state.course.par = make18(4); // safe default
+  state.course={name:'El Macero',
+    hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16],
+    par:[4,5,3,4,5,4,3,4,4,4,4,3,4,4,5,3,4,5]
+  };
+  if(!state.course.par || state.course.par.length!==18){
+    state.course.par = make18(4); // safe default
+  }
 }
 
-    }
     for(var gi=0; gi<state.games.length; gi++){ state.games[gi]=sanitizeGame(state.games[gi]); }
     var hasActive=false; for(var gx=0; gx<state.games.length; gx++){ if(state.games[gx].id===state.activeGameId){ hasActive=true; break; } }
     if(!hasActive){ state.activeGameId=state.games[0].id; }
@@ -1161,28 +1164,27 @@ if (headerEl) headerEl.style.display = (state.tab === 'setup' ? '' : 'none');
 
   function wrapThemes(viewNode){ var wrap=h('div',{},[]); wrap.appendChild(viewNode); return wrap; }
 
- document.getElementById('resetBtn').addEventListener('click', function(){
-  if(!confirm('Start a brand-new round? This clears all scores/junk and resets teams/stakes to defaults.')) return;
-  try{ localStorage.removeItem(STORAGE_KEY); }catch(_e){}
+document.getElementById('resetBtn').addEventListener('click', function(){
+  if(!confirm('Start a new round? Scores & junk will be cleared and teams/stakes reset. Your custom courses & presets will be kept.')) return;
 
-  state.players=[
-    {id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}
-  ];
-  state.games=[];
-  var ng=makeNewGame(false);
-  state.games=[ng];
-  state.activeGameId=ng.id;
+  // Preserve current course + presets (and player names)
+  var keepCourse  = JSON.parse(JSON.stringify(state.course || {}));
+  var keepPresets = COURSE_PRESETS; // reference is fine; we reassign below
 
-  // Fully reset course (HCP + PAR + name)
-  state.course={
-    name:'El Macero Temp',
-    hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
-    par:[4,5,3,4,5,4,3,4,4,4,5,3,4,5,4,3,4,4]
-  };
+  // Fresh games with defaults; player names stay as-is
+  state.games = [];
+  var ng = makeNewGame(false);
+  state.games = [ng];
+  state.activeGameId = ng.id;
+
+  // Restore preserved course + presets
+  state.course = keepCourse;
+  COURSE_PRESETS = keepPresets;
 
   saveState();
   render();
 });
+
 
   document.getElementById('clearBtn').addEventListener('click', function(){
     if(!confirm('Clear all scores & junk for this round and remove the saved snapshot? Teams, stakes, strokes, and course stay the same.')) return;
@@ -1197,6 +1199,46 @@ if (headerEl) headerEl.style.display = (state.tab === 'setup' ? '' : 'none');
   });
 
   render();
+  document.getElementById('factoryBtn').addEventListener('click', function(){
+  if(!confirm('Factory Reset will erase EVERYTHING: scores, teams, strokes, players, and ALL saved course presets. Continue?')) return;
+
+  try { localStorage.removeItem(STORAGE_KEY); } catch(_e) {}
+
+  // Reset players to defaults (change if you want to keep names)
+  state.players = [
+    {id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}
+  ];
+
+  // Fresh game
+  state.games = [];
+  var ng = makeNewGame(false);
+  state.games = [ng];
+  state.activeGameId = ng.id;
+
+  // Reset course to built-in El Macero Temp
+  state.course={name:'El Macero',
+  hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16],
+  par:[4,5,3,4,5,4,3,4,4,4,4,3,4,4,5,3,4,5]
+};
+
+
+  // Recreate built-in presets only (wipes all custom ones)
+  COURSE_PRESETS = {
+    'El Macero': {
+      hcp:[7,15,9,1,11,3,17,13,5,4,2,10,8,12,14,18,6,16],
+      par:[4,5,3,4,5,4,3,4,4,4,4,3,4,4,5,3,4,5]
+    },
+    'El Macero Temp': {
+      hcp:[3,11,17,7,13,1,15,9,5,4,12,18,8,14,2,16,10,6],
+      par:[4,5,3,4,5,4,3,4,4,4,5,3,4,5,4,3,4,4]
+    }
+  };
+
+  saveState();
+  render();
+  alert('Factory Reset complete. All custom courses/presets were removed.');
+});
+
 })();
 </script>
 </body>
