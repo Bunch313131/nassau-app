@@ -358,7 +358,7 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
     var a1=g.teamA&&g.teamA[0]?abbr(g.teamA[0],used):'', a2=g.teamA&&g.teamA[1]?abbr(g.teamA[1],used):'';
     var b1=g.teamB&&g.teamB[0]?abbr(g.teamB[0],used):'', b2=g.teamB&&g.teamB[1]?abbr(g.teamB[1],used):'';
     var left=(a1&&a2)?(a1+'/'+a2):(a1||a2||'Team A'); var right=(b1&&b2)?(b1+'/'+b2):(b1||b2||'Team B');
-    var mode = g.scoringMode==='low_net' ? 'Low Net' : 'Hi/Low';
+    var mode = g.scoringMode==='low_net' ? 'Best Ball' : 'Hi/Low';
     var vs = left+' vs '+right;
     return mode+': '+vs;
   }
