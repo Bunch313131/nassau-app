@@ -41,16 +41,23 @@
   border-color: #b91c1c;
 }
 .btn.share {
-  background: linear-gradient(90deg, #3b82f6, #2563eb); /* blue gradient */
-  border-color: #2563eb;
+  background: #16a34a;        /* green-600 */
+  border-color: #16a34a;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(37,99,235,0.35);
+  box-shadow: 0 2px 6px rgba(22,163,74,0.35);
 }
+
 .btn.share:hover {
-  background: linear-gradient(90deg, #2563eb, #1e40af);
-  border-color: #1e40af;
+  background: #15803d;        /* green-700 */
+  border-color: #15803d;
 }
+
+.btn.share:active {
+  background: #166534;        /* green-800 */
+  border-color: #166534;
+}
+
 
 
   .btn.small{ padding:6px 10px; font-size:14px; }
@@ -358,7 +365,7 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
     var a1=g.teamA&&g.teamA[0]?abbr(g.teamA[0],used):'', a2=g.teamA&&g.teamA[1]?abbr(g.teamA[1],used):'';
     var b1=g.teamB&&g.teamB[0]?abbr(g.teamB[0],used):'', b2=g.teamB&&g.teamB[1]?abbr(g.teamB[1],used):'';
     var left=(a1&&a2)?(a1+'/'+a2):(a1||a2||'Team A'); var right=(b1&&b2)?(b1+'/'+b2):(b1||b2||'Team B');
-    var mode = g.scoringMode==='low_net' ? 'Best Ball' : 'Hi/Low';
+    var mode = g.scoringMode==='low_net' ? 'Best' : 'Hi/Low';
     var vs = left+' vs '+right;
     return mode+': '+vs;
   }
@@ -713,7 +720,7 @@ h('div',{style:'padding-left:8px;'},[
 // Note block (below row)
 (g.scoringMode==='hi_low' && (g.teamSize||2)===1
   ? h('div',{style:'margin-top:4px;'},[
-      h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Low Net for presses and status.')
+      h('div',{class:'note'},'Hi/Low needs 2v2. Until each side has 2 players, holes are scored as Best Ball for presses and status.')
     ])
   : h('div',{})),
 
