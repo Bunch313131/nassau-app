@@ -646,43 +646,77 @@ for(var ph=0; ph<18; ph++){
       return wrap;
     }
 
-    function strokesEditor(game){
-      function teamRow(label, ids){
-        var kids = [ h('div',{class:'muted', style:'min-width:68px;'}, label) ];
-        for(var i=0;i<ids.length;i++){
-          (function(pid){
-            kids.push(
-              h('div',{class:'row', style:'align-items:center; gap:8px;'},[
-                h('div', {class:'muted'}, playerName(pid)),
-                h('input',{
-                  type:'tel', inputmode:'numeric', pattern:'[0-9]*',
-                  value: game.strokesCount[pid]||0,
-                  style:'width:72px; text-align:center;',
-                  onfocus: beginEdit,
-                  oninput: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; },
-                  onblur: function(e){ var d=e.target.value.replace(/[^0-9]/g,''); game.strokesCount[pid]=parseInt(d||'0',10)||0; e.target.value=String(game.strokesCount[pid]||0); endEdit(); }
-                })
-              ])
-            );
-          })(ids[i]);
-        }
-        return h('div', {class:'row', style:'align-items:center; gap:16px; flex-wrap:wrap;'}, kids);
-      }
+   function strokesEditor(game){
+  function teamRow(label, ids){
+    // Section label (e.g., "Team A:")
+    const header = h('div',{class:'muted', style:'margin:6px 0 8px;'}, label);
 
-      var anyA = (game.teamA||[]).length;
-      var anyB = (game.teamB||[]).length;
+    // Responsive grid of player tiles; names sit ABOVE the input
+    const grid = h('div',{
+      style:[
+        'display:grid',
+        'gap:12px',
+        'grid-template-columns:repeat(auto-fit, minmax(96px, 1fr))',
+        'align-items:start'
+      ].join(';')
+    },[]);
 
-      var body = [];
-      if(anyA) body.push( teamRow('Team A:', game.teamA) );
-      if(anyB) body.push( teamRow('Team B:', game.teamB) );
-      if(!anyA && !anyB){ body.push(h('div',{class:'note'},'Pick players for each team to edit strokes.')); }
-      else { body.push(h('div',{class:'note'},'Strokes apply on HCP 1…n across 18.')); }
+    for (var i=0; i<ids.length; i++){
+      (function(pid){
+        grid.appendChild(
+          h('div',{
+            // a simple vertical tile; no extra card/border so it blends in
+            style:'display:flex; flex-direction:column; gap:6px;'
+          },[
+            // Player name above; wraps safely without widening the input
+            h('div',{
+              class:'muted',
+              style:'text-align:center; font-size:12px; line-height:1.2; word-break:break-word;'
+            }, playerName(pid)),
 
-      return h('div',{class:'card'},[
-        h('div',{class:'pill'},'Strokes (per player for this game)'),
-        h('div',{}, body)
-      ]);
+            // Strokes input (full-width so it doesn’t wrap)
+            h('input',{
+              type:'tel', inputmode:'numeric', pattern:'[0-9]*',
+              value: game.strokesCount[pid]||0,
+              style:'width:100%; text-align:center; padding:8px 10px;',
+              onfocus: beginEdit,
+              oninput: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,'');
+                if(d!==e.target.value) e.target.value=d;
+              },
+              onblur: function(e){
+                var d=e.target.value.replace(/[^0-9]/g,'');
+                game.strokesCount[pid]=parseInt(d||'0',10)||0;
+                e.target.value=String(game.strokesCount[pid]||0);
+                endEdit();
+              }
+            })
+          ])
+        );
+      })(ids[i]);
     }
+
+    return h('div',{},[header, grid]);
+  }
+
+  var anyA = (game.teamA||[]).length;
+  var anyB = (game.teamB||[]).length;
+
+  var body = [];
+  if(anyA) body.push( teamRow('Team A:', game.teamA) );
+  if(anyB) body.push( teamRow('Team B:', game.teamB) );
+  if(!anyA && !anyB){
+    body.push(h('div',{class:'note'},'Pick players for each team to edit strokes.'));
+  } else {
+    body.push(h('div',{class:'note'},'Strokes apply on HCP 1…n across 18.'));
+  }
+
+  return h('div',{class:'card'},[
+    h('div',{class:'pill'},'Strokes (per player for this game)'),
+    h('div',{}, body)
+  ]);
+}
+
 
     var gamesCardChildren=[
       h('div',{class:'row',style:'align-items:center; justify-content:space-between;'},[
