@@ -208,6 +208,7 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
   var state={
     tab:'setup',
     debugStatus:false,
+    ui: { currentHole: -1 },
     players:[{id:'p1',name:'P1'},{id:'p2',name:'P2'},{id:'p3',name:'P3'},{id:'p4',name:'P4'},{id:'p5',name:'P5'}],
     games:[],
     activeGameId:null,
@@ -242,6 +243,7 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
       if(Array.isArray(obj.players)) state.players=obj.players;
       if(Array.isArray(obj.games)) state.games=obj.games;
       state.activeGameId=obj.activeGameId||state.activeGameId;
+      if(obj.ui && typeof obj.ui==='object') state.ui = obj.ui;
       if(obj.course&&obj.course.hcp&&obj.course.hcp.length===18){ state.course.hcp=obj.course.hcp; state.course.name=obj.course.name||state.course.name; }
       if(obj.course && Array.isArray(obj.course.par) && obj.course.par.length===18){
   state.course.par=obj.course.par;
@@ -379,6 +381,19 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
   }
   function computeNet(gross,s){ if(gross==null||!isFinite(gross)) return null; return gross - (isFinite(s||0)?(s||0):0); }
   function sumGrossRange(arr,start,end){ var t=0, any=false; for(var i=start;i<=end;i++){ var v=arr&&arr[i]; if(v!=null && isFinite(+v)){ t+=+v; any=true; } } return any? t : null; }
+function getLastScoredHole0Based(){
+  var g0 = state.games && state.games[0];
+  if(!g0 || !g0.gross) return -1;
+  var last = -1;
+  for (var holeI=0; holeI<18; holeI++){
+    for (var pi=0; pi<state.players.length; pi++){
+      var pid = state.players[pi].id;
+      var v = g0.gross[pid] ? g0.gross[pid][holeI] : null;
+      if(v!=null && v!==''){ last = holeI; break; }
+    }
+  }
+  return last;
+}
 
   function bestNetForTeam(game, teamIds, hole){
     var G=game.gross, best=Infinity, has=false;
@@ -811,18 +826,57 @@ h('div',{style:'padding-left:8px;'},[
       if(tEl) tEl.textContent=(tot==null?'':String(tot));
     }
 
-    function grossInput(pid,hole,rowIdx){
-      var tabIndex = (hole * state.players.length) + rowIdx + 1; // column-major order
-      return h('input',{
-        type:'tel',inputmode:'numeric',pattern:'[0-9]*',placeholder:'-',
-        tabindex: tabIndex,
-        value:(g0.gross[pid][hole]==null?'':String(g0.gross[pid][hole])),
-        onfocus:beginEdit,
-        oninput:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); if(d!==e.target.value) e.target.value=d; var v=(d==='')?null:parseInt(d,10); for(var gi=0; gi<state.games.length; gi++){ state.games[gi].gross[pid][hole]=(isNaN(v)?null:v); } },
-        onkeydown:function(e){ if(e.key==='Enter'){ e.preventDefault(); var nextTab = tabIndex + 1; var maxInCol = (hole+1)*state.players.length; if(nextTab>maxInCol) nextTab = (hole+1<18) ? ((hole+1)*state.players.length - (state.players.length-1)) : tabIndex; var next = document.querySelector('input[tabindex="'+nextTab+'"]'); if(next) next.focus(); } },
-        onblur:function(e){ var d=e.target.value.replace(/[^0-9]/g,''); var v=(d==='')?null:parseInt(d,10); for(var gi=0; gi<state.games.length; gi++){ state.games[gi].gross[pid][hole]=(isNaN(v)?null:v); } e.target.value=(v==null?'':String(v)); updateSums(pid); endEdit(); }
-      });
+   function grossInput(pid,hole,rowIdx){
+  var tabIndex = (hole * state.players.length) + rowIdx + 1; // column-major order
+  return h('input',{
+    type:'tel',inputmode:'numeric',pattern:'[0-9]*',placeholder:'-',
+    tabindex: tabIndex,
+    value:(g0.gross[pid][hole]==null?'':String(g0.gross[pid][hole])),
+    onfocus:beginEdit,
+    oninput:function(e){
+      var d=e.target.value.replace(/[^0-9]/g,''); 
+      if(d!==e.target.value) e.target.value=d;
+      var v=(d==='')?null:parseInt(d,10);
+
+      // write-through to ALL games (your existing logic)
+      for(var gi=0; gi<state.games.length; gi++){
+        state.games[gi].gross[pid][hole]=(isNaN(v)?null:v);
+      }
+
+      // 🔹 NEW: keep currentHole synced while typing
+      state.ui.currentHole = getLastScoredHole0Based();
+    },
+    onkeydown:function(e){
+      if(e.key==='Enter'){
+        e.preventDefault();
+        var nextTab = tabIndex + 1;
+        var maxInCol = (hole+1)*state.players.length;
+        if(nextTab>maxInCol)
+          nextTab = (hole+1<18) ? ((hole+1)*state.players.length - (state.players.length-1)) : tabIndex;
+        var next = document.querySelector('input[tabindex="'+nextTab+'"]');
+        if(next) next.focus();
+      }
+    },
+    onblur:function(e){
+      var d=e.target.value.replace(/[^0-9]/g,''); 
+      var v=(d==='')?null:parseInt(d,10);
+
+      // write-through to ALL games (your existing logic)
+      for(var gi=0; gi<state.games.length; gi++){
+        state.games[gi].gross[pid][hole]=(isNaN(v)?null:v);
+      }
+
+      e.target.value=(v==null?'':String(v));
+      updateSums(pid);
+
+      // 🔹 NEW: also update on blur (covers paste/edits)
+      state.ui.currentHole = getLastScoredHole0Based();
+
+      endEdit();
     }
+  });
+}
+
 
     var head=[h('th',{class:'sticky'},'Hole')];
     for(var hi=0; hi<18; hi++) head.push(h('th',{id:'col_h_'+hi},String(hi+1)));
@@ -923,6 +977,9 @@ var tbody=h('tbody',{},rows);
   }
 
   function screenJunk(){
+    var targetHole = (state.ui && Number.isInteger(state.ui.currentHole)) ? state.ui.currentHole : -1;
+if (targetHole < 0) targetHole = getLastScoredHole0Based();
+
     var blocks = [];
     for (var gi = 0; gi < state.games.length; gi++){
       (function(g, idx){
@@ -966,25 +1023,16 @@ var tbody=h('tbody',{},rows);
         var thead  = h('thead', {}, [ h('tr', {}, head) ]);
         var tbody  = h('tbody', {}, rows);
         var grid   = h('div', { class:'card scroll', id:'junkScroll_'+idx }, [ h('table', {}, [ thead, tbody ]) ]);
-// Auto-scroll to the last column that has any junk value > 0
-var lastJunkHole = -1;
-for (var colIdx = 0; colIdx < 18; colIdx++) {
-  for (var i2 = 0; i2 < pids.length; i2++) {
-    var pid2 = pids[i2];
-    var v = g.junkCounts[pid2] && g.junkCounts[pid2][colIdx];
-    if (isFinite(+v) && +v > 0) lastJunkHole = colIdx;
-  }
-}
-if (lastJunkHole >= 0) {
-  setTimeout(function () {
-    try {
-      var col = document.getElementById('junk_col_' + idx + '_' + lastJunkHole);
+if (targetHole >= 0) {
+  setTimeout(function(){
+    try{
+      var col = document.getElementById('junk_col_' + idx + '_' + targetHole);
       var sc  = document.getElementById('junkScroll_' + idx);
-      if (col && sc) {
-        var target = Math.max(0, col.offsetLeft - sc.clientWidth * 0.2);
+      if (col && sc){
+        var target = Math.max(0, col.offsetLeft - sc.clientWidth*0.2);
         sc.scrollLeft = target;
       }
-    } catch (_e) {}
+    }catch(_e){}
   }, 0);
 }
 
