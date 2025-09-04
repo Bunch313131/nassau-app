@@ -170,6 +170,36 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
     grid-template-columns: 1fr;
   }
 }
+/* === Highlights styles === */
+.highlights-wrap{display:flex;flex-direction:column;gap:12px;padding:12px}
+.hl-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hl-toolbar .pill{background:var(--card);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
+.hl-toolbar input[type="number"]{width:88px;padding:6px 8px;border:1px solid var(--border);border-radius:8px}
+.hl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:8px}
+.hl-card{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.hl-row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.hl-hole{font-weight:700;font-size:14px}
+.hl-amt{font-weight:800}
+.hl-amt.win{color:#16a34a}
+.hl-amt.loss{color:#dc2626}
+.hl-desc{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
+.hl-badge{font-size:11px;border-radius:6px;border:1px solid var(--border);padding:2px 6px;margin-right:6px}
+.hl-badges{margin-top:6px}
+.hl-empty{padding:16px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);text-align:center}
+/* Hide the overlay number while editing so you don't see two digits */
+
+/* Show overlay only when input is empty */
+.junkWrap .junkBox:not(:placeholder-shown) + .junkVal {
+  display: none;
+}
+
+/* Also hide overlay while editing */
+.junkWrap:focus-within .junkVal {
+  display: none;
+}
+
+
+
 
 </style>
 </head>
@@ -516,10 +546,301 @@ function getLastScoredHole0Based(){
     return fmt(total) + ' / ' + fmt(total / sz);
   }
 
+// === Aggregate Zero-Baseline Highlights (per hole) ===
+
+// Deep clone for counterfactuals
+function cloneGame(g){ return JSON.parse(JSON.stringify(g)); }
+
+// Label (optional, just for nice text)
+function eventLabelForScore(gross, par){
+  if(gross==null || par==null) return null;
+  var d = gross - par;
+  if(d <= -3) return 'albatross';
+  if(d === -2) return 'eagle';
+  if(d === -1) return 'birdie';
+  if(d ===  1) return 'bogey';
+  if(d >=  2) return 'double bogey';
+  return null; // par or unknown
+}
+
+// Who won the hole (for attribution)
+function hlHoleWinners(game, hole){
+  var A=game.teamA||[], B=game.teamB||[];
+  var mode=game.scoringMode||'hi_low';
+  function nets(team){
+    var out=[];
+    for(var i=0;i<team.length;i++){
+      var pid=team[i], g=game.gross[pid] && game.gross[pid][hole];
+      if(g==null) continue;
+      var net = computeNet(g, strokesFor(game,pid,hole));
+      if(net!=null) out.push({pid, net});
+    }
+    return out;
+  }
+  var a=nets(A), b=nets(B);
+  if(!a.length || !b.length) return {side:null,pids:[]};
+
+  a.sort((x,y)=>x.net-y.net);
+  b.sort((x,y)=>x.net-y.net);
+
+  if(mode==='low_net' || A.length<2 || B.length<2){
+    if(a[0].net < b[0].net) return {side:'A', pids:[a[0].pid]};
+    if(b[0].net < a[0].net) return {side:'B', pids:[b[0].pid]};
+    return {side:null,pids:[]};
+  }else{
+    var pts=0, pids=[];
+    if(a[0].net < b[0].net){ pts++; pids.push(a[0].pid); }
+    else if(b[0].net < a[0].net){ pts--; pids.push(b[0].pid); }
+    var ah=a[a.length-1], bh=b[b.length-1];
+    if(ah.net < bh.net){ pts++; if(pids.indexOf(ah.pid)<0) pids.push(ah.pid); }
+    else if(bh.net < ah.net){ pts--; if(pids.indexOf(bh.pid)<0) pids.push(bh.pid); }
+    if(pts>0) return {side:'A', pids:pids.filter(pid=>A.indexOf(pid)>=0)};
+    if(pts<0) return {side:'B', pids:pids.filter(pid=>B.indexOf(pid)>=0)};
+    return {side:null,pids:[]};
+  }
+}
+
+// Force a given hole to be a push (zero effect) for one game:
+// - make every player's NET equal (gross = strokes + 100)
+// - clear junk on that hole
+function equalizeHoleToZero(game, hole){
+  var g2 = cloneGame(game);
+  var ids = [].concat(g2.teamA||[], g2.teamB||[]);
+  for(var i=0;i<ids.length;i++){
+    var pid = ids[i];
+    var s = strokesFor(g2, pid, hole) || 0;
+    if(!g2.gross[pid]) g2.gross[pid] = make18(null);
+    g2.gross[pid][hole] = s + 100; // everyone nets to 100 → pure push
+    if(!g2.junkCounts[pid]) g2.junkCounts[pid] = make18(0);
+    g2.junkCounts[pid][hole] = 0;  // no junk on the neutralized hole
+  }
+  return g2;
+}
+
+// Total Team A net across all games
+function aggregateActualTotal(state){
+  var tot=0;
+  for(var gi=0; gi<state.games.length; gi++){
+    tot += computeGameResult(state.games[gi]).teamTotals.total;
+  }
+  return tot;
+}
+
+// Counterfactual total when a specific hole is neutralized in every game
+function aggregateCounterfactualForHole(state, hole){
+  var tot=0;
+  for(var gi=0; gi<state.games.length; gi++){
+    var g = state.games[gi];
+    var g2 = equalizeHoleToZero(g, hole);
+    tot += computeGameResult(g2).teamTotals.total;
+  }
+  return tot;
+}
+
+// Also compute per-game contribution to the swing for attribution
+function perGameContributionForHole(state, hole){
+  var contrib=[];
+  for(var gi=0; gi<state.games.length; gi++){
+    var g = state.games[gi];
+    var actual = computeGameResult(g).teamTotals.total;
+    var cf = computeGameResult(equalizeHoleToZero(g, hole)).teamTotals.total;
+    contrib.push({gi:gi, delta: actual - cf, game:g});
+  }
+  contrib.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  return contrib;
+}
+
+// Build the per-hole, aggregate highlights
+function buildZeroHighlights(state){
+  var lines=[];
+  var actualAll = aggregateActualTotal(state);
+  for(var h=0; h<18; h++){
+    // If nobody has scores on this hole anywhere, skip quick
+    var hasAny=false;
+    for(var gi=0; gi<state.games.length && !hasAny; gi++){
+      var g=state.games[gi], ids=[].concat(g.teamA||[], g.teamB||[]);
+      for(var i=0;i<ids.length;i++){
+        var v=g.gross[ids[i]] && g.gross[ids[i]][h];
+        if(v!=null){ hasAny=true; break; }
+      }
+    }
+    if(!hasAny) continue;
+
+    var cfAll = aggregateCounterfactualForHole(state, h);
+    var swing = actualAll - cfAll; // >0 means toward Team A
+    if(!swing) continue;
+
+    // Find the game that contributed most to this hole’s swing
+    var contrib = perGameContributionForHole(state, h);
+    var top = contrib[0];
+    var toward = swing>0 ? 'Team A' : 'Team B';
+
+ // Attribution: allow multiple players; ALWAYS label by what each player scored (birdie/par/etc),
+// even if junk drove the swing.
+var swingSign = swing > 0 ? 1 : -1;
+var per = perPlayerContributionForHole(top.game, h);
+
+// Keep only contributors whose marginal delta points the same way as the overall swing.
+// If none, fall back to everyone.
+var sameDir = per.filter(p => Math.sign(p.delta) === swingSign);
+if (!sameDir.length && per.length) sameDir = per.slice();
+
+// Find the largest absolute marginal impact among those, include all ties.
+var topAbs = 0;
+for (var i = 0; i < sameDir.length; i++) topAbs = Math.max(topAbs, Math.abs(sameDir[i].delta));
+var EPS = 1e-9;
+var tied = sameDir.filter(p => Math.abs(Math.abs(p.delta) - topAbs) <= EPS);
+
+// Helper: score label for a player on this hole
+function labelForPid(pid){
+  var parVal = (state.course && state.course.par && state.course.par[h] != null)
+                ? +state.course.par[h] : null;
+  var gross = top.game.gross[pid] && top.game.gross[pid][h];
+  if (parVal == null || gross == null) return '';     // unknown → no label
+  var lab = eventLabelForScore(gross, parVal);        // 'birdie', 'bogey', etc. null → par
+  if (lab == null && gross === parVal) lab = 'par';
+  return lab || '';
+}
+
+// Simple pluralizer for uniform multi-player labels
+function pluralizeLabel(s){
+  if (s === 'par') return 'pars';
+  if (s === 'birdie') return 'birdies';
+  if (s === 'eagle') return 'eagles';
+  if (s === 'bogey') return 'bogeys';
+  if (s === 'double bogey') return 'double bogeys';
+  if (s === 'albatross') return 'albatrosses';
+  return s ? (s + 's') : s;
+}
+
+// Names + labels
+var whoPids = tied.map(t => t.pid);
+var names   = whoPids.map(playerName);
+var labels  = whoPids.map(labelForPid).map(s => s || ''); // ensure strings
+
+// Build `whoText`:
+//  - If all labels equal and non-empty: "P1 & P2's birdies"
+//  - If mixed labels: "P1 birdie & P2 par" (attach label to each name)
+//  - If labels missing: just list names ("P1 & P2")
+var allSame = labels.length && labels.every(l => l && l === labels[0]);
+var whoText;
+if (labels.length === 1){
+  whoText = names[0] + (labels[0] ? (' ' + labels[0]) : '');
+} else if (allSame){
+  whoText = names.join(' & ') + (labels[0] ? ("'s " + pluralizeLabel(labels[0])) : '');
+} else {
+  var parts = [];
+  for (var i = 0; i < names.length; i++){
+    parts.push(names[i] + (labels[i] ? (' ' + labels[i]) : ''));
+  }
+  whoText = parts.join(' & ');
+  var who = whoText; // fix: align with lines.push(...) expecting `who`
+
+}
+
+
+// (result uses `who` and optional `tag`; example text added below)
+// lines.push({
+//   hole:h,
+//   value:Math.abs(swing),
+//   swing:swing,
+//   text:`Hole ${h+1}: ${who}${tag ? (" " + tag) : ""} swung ${fmt(Math.abs(swing))} toward ${toward}`
+// });
+
+
+
+    lines.push({
+      hole:h,
+      value:Math.abs(swing),
+      swing:swing,
+      text:`Hole ${h+1}: ${whoText} swung ${fmt(Math.abs(swing))} toward ${toward}`
+
+    });
+  }
+
+  // Rank biggest swings first (later holes tie-break)
+  lines.sort((a,b)=> (b.value-a.value) || (b.hole-a.hole));
+  return lines;
+}
+
+// UI: simple list with Min$/TopN controls (same knobs as before)
+function renderTextHighlights(){
+  if(!state.settings) state.settings={};
+  if(typeof state.settings.thTop !== 'number') state.settings.thTop = 12;
+  if(typeof state.settings.thMin !== 'number') state.settings.thMin = 5;
+
+  var all = buildZeroHighlights(state).filter(x=>x.value >= state.settings.thMin);
+  all = all.slice(0, state.settings.thTop);
+
+  var box = h('div',{class:'card'},[
+    h('div',{class:'row',style:'justify-content:space-between;align-items:center;'},[
+      h('div',{class:'pill'},'Highlights (hole vs zero)'),
+      h('div',{},[
+        h('label',{},['Min $ ',
+          h('input',{type:'number',value:state.settings.thMin,style:'width:80px;padding:4px 6px;',
+            oninput:function(e){ state.settings.thMin = +e.target.value||0; render(); }})
+        ]),
+        h('label',{style:'margin-left:8px;'},['Top ',
+          h('input',{type:'number',value:state.settings.thTop,style:'width:64px;padding:4px 6px;',
+            oninput:function(e){ state.settings.thTop = Math.max(1,+e.target.value||1); render(); }})
+        ])
+      ])
+    ]),
+    (all.length
+      ? h('ul',{}, all.map(x=>h('li',{}, x.text)))
+      : h('div',{class:'muted',style:'padding:8px 0;'},'No highlights yet.'))
+  ]);
+
+  return h('div',{},[box]);
+}
+
+// Force ONLY one player's hole to neutral (nets equal) + clear that player's junk on that hole
+function equalizeHoleForSinglePlayer(game, hole, pid){
+  var g2 = cloneGame(game);
+  var s = strokesFor(g2, pid, hole) || 0;
+  if(!g2.gross[pid]) g2.gross[pid] = make18(null);
+  g2.gross[pid][hole] = s + 100;       // this player pushes the hole
+  if(!g2.junkCounts[pid]) g2.junkCounts[pid] = make18(0);
+  g2.junkCounts[pid][hole] = 0;        // remove their junk for this hole
+  return g2;
+}
+
+// In one game, measure each player's marginal $ contribution on this hole
+function perPlayerContributionForHole(game, hole){
+  var actual = computeGameResult(game).teamTotals.total;
+  var ids = [].concat(game.teamA||[], game.teamB||[]);
+  var out = [];
+  for(var i=0;i<ids.length;i++){
+    var pid = ids[i];
+    // If they didn’t post a gross here and have no junk, skip quick
+    var hasGross = game.gross[pid] && game.gross[pid][hole]!=null;
+    var hasJunk = (game.junkCounts[pid]||[])[hole] > 0;
+    if(!hasGross && !hasJunk) continue;
+
+    var cfGame = equalizeHoleForSinglePlayer(game, hole, pid);
+    var cf = computeGameResult(cfGame).teamTotals.total;
+    out.push({ pid: pid, delta: actual - cf }); // positive => toward Team A
+  }
+  // biggest absolute first
+  out.sort(function(a,b){ return Math.abs(b.delta) - Math.abs(a.delta); });
+  return out;
+}
+
+
   // ===== Tabs =====
   function Tabs(){
     function mk(id,label){ return h('button',{class:'btn '+(state.tab===id?'active primary':''), onclick:function(){ if(document.activeElement&&document.activeElement.blur){ try{document.activeElement.blur();}catch(_e){} } state.tab=id; render(); }}, label); }
-    var node=h('div',{class:'tabs'},[ mk('setup','SETUP'), mk('scores','SCORES'), mk('junk','JUNK'), mk('status','STATUS'), mk('game','GAME'), mk('transactions','TRANSACTIONS') ]);
+   var node=h('div',{class:'tabs'},[
+  mk('setup','SETUP'),
+  mk('scores','SCORES'),
+  mk('junk','JUNK'),
+  mk('status','STATUS'),
+  mk('game','GAME'),
+  mk('transactions','TRANSACTIONS'),
+   mk('highlights','HIGHLIGHTS'),   // ⬅️ new
+  
+]);
+
     var root=document.getElementById('tabs'); root.innerHTML=''; root.appendChild(node);
   }
 
@@ -1073,7 +1394,14 @@ if (targetHole >= 0) {
         blocks.push( h('div', { class: theme }, [ grid ]) );
       })(state.games[gi], gi);
     }
-    return h('div', {}, blocks);
+    
+    // Small note shown above all junk-entry tables
+var note = h('div', { class:'note', style:'margin-bottom:8px;' },
+             'Sweeps (+3) Sweeps/Quads (+6) on last Par 3');
+    
+    
+    return h('div', {}, [ note ].concat(blocks));
+
   }
 
   function screenGame(){
@@ -1271,12 +1599,15 @@ function shareResults(){
       var root=document.getElementById('app'); root.innerHTML='';
       var view;
       if(state.tab==='setup') view=screenSetup();
-      else if(state.tab==='scores') view=wrapThemes(screenScores());
-      else if(state.tab==='junk') view=wrapThemes(screenJunk());
-      else if(state.tab==='status') view=wrapThemes(screenStatus());
-      else if(state.tab==='game') view=wrapThemes(screenGame());
-      else if(state.tab==='transactions') view=wrapThemes(screenTransactions());
-      else view=wrapThemes(screenGame());
+    else if(state.tab==='scores') view=wrapThemes(screenScores());
+    else if(state.tab==='junk') view=wrapThemes(screenJunk());
+    else if(state.tab==='status') view=wrapThemes(screenStatus());
+    else if(state.tab==='highlights') view=wrapThemes(renderTextHighlights()); // ⬅️ add this
+    else if(state.tab==='game') view=wrapThemes(screenGame());
+    else if(state.tab==='transactions') view=wrapThemes(screenTransactions());
+    else view=wrapThemes(screenGame());
+
+      
       // Hide the header on all tabs except Setup
 var headerEl = document.querySelector('header');
 if (headerEl) headerEl.style.display = (state.tab === 'setup' ? '' : 'none');
