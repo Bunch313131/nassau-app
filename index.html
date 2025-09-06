@@ -197,6 +197,42 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
 .junkWrap:focus-within .junkVal {
   display: none;
 }
+/* Force visible numbers on iOS for junk inputs */
+.ios .junk input[type="number"],
+.ios .junk input[type="text"] {
+  color: var(--fg, #111827) !important;
+  -webkit-text-fill-color: currentColor !important; /* iOS Safari */
+  text-shadow: none !important;
+  opacity: 1 !important;
+  caret-color: currentColor !important;
+}
+
+/* If we used a mirrored/overlay value to prevent “double numbers”, hide it on iOS */
+.ios .junk .value-mirror,
+.ios .junk .value-overlay,
+.ios .junk .ghost-value {
+  display: none !important;
+}
+
+/* In case we previously hid the native text to avoid double render */
+.ios .junk input[type="number"],
+.ios .junk input[type="text"] {
+  /* undo possible prior hacks */
+  background-clip: padding-box !important;
+  /* if you had color:transparent or -webkit-text-fill-color:transparent somewhere */
+}
+
+/* Optional: ensure background contrast for the junk cells */
+.junk input[type="number"],
+.junk input[type="text"] {
+  background-color: var(--cellBg, rgba(0,0,0,0.04));
+}
+@media (prefers-color-scheme: dark) {
+  .junk input[type="number"],
+  .junk input[type="text"] {
+    background-color: rgba(255,255,255,0.06);
+  }
+}
 
 
 
@@ -1696,5 +1732,13 @@ document.getElementById('resetBtn').addEventListener('click', function(){
 
 })();
 </script>
+  <script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
+  if (isIOS) document.documentElement.classList.add('ios');
+})();
+</script>
+
 </body>
 </html>
