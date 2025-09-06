@@ -99,11 +99,33 @@
     .theme-g3 .card, .shape-g3 .card{ outline: 1px solid rgba(217,119,6,.35);  background: linear-gradient(0deg, rgba(217,119,6,.10),  rgba(217,119,6,.10))  var(--card); }
   }
 
-  /* Junk + input contrast (unchanged) */
-  .junkWrap{ position:relative; display:inline-block; }
-  .junkBox{ width:56px; height:32px; text-align:center; font-variant-numeric: tabular-nums; font-size:16px; line-height:32px; color:#ffffff !important; -webkit-text-fill-color:#ffffff !important; caret-color:#ffffff !important; background: rgba(59,130,246,0.15) !important; border: 1px solid rgba(59,130,246,0.65) !important; opacity:1 !important; mix-blend-mode: normal !important; filter:none !important; }
-  .junkVal{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1; color:#ffffff; opacity:0.9; pointer-events:none; user-select:none; }
-  table td input.junkBox{ opacity:1 !important; }
+  /* Junk input + tiny badge (no full overlay) */
+.junkWrap{ position:relative; display:inline-block; }
+.junkBox{
+  width: 32px;
+  text-align:center;
+  font-variant-numeric: tabular-nums;
+  font-size: 17px !important;
+  line-height: normal !important;
+  height: auto !important;
+  padding: 2px;
+  -webkit-text-size-adjust: 100% !important;
+  text-rendering: optimizeLegibility;
+}
+.junkVal{
+  position:absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.9;
+  pointer-events:none;
+  user-select:none;
+}
+/* Show badge only when input is empty */
+.junkWrap .junkBox:not(:placeholder-shown) + .junkVal { display:none; }
+.junkWrap:focus-within .junkVal { display:none; }
+
   .junkWrap{ position: relative; }
   .junkBox{ width: 32px; text-align: center; font-size: 12px; padding: 2px; }
   .junkVal{ position: absolute; top: 0; right: 4px; font-size: 10px; pointer-events: none; }
@@ -197,30 +219,19 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
 .junkWrap:focus-within .junkVal {
   display: none;
 }
-/* Force visible numbers on iOS for junk inputs */
-.ios .junk input[type="number"],
-.ios .junk input[type="text"] {
-  color: var(--fg, #111827) !important;
-  -webkit-text-fill-color: currentColor !important; /* iOS Safari */
-  text-shadow: none !important;
+/* iOS: show the native digits and kill any overlay on junk inputs */
+.ios .junkBox{
+  color: var(--txt) !important;
+  -webkit-text-fill-color: var(--txt) !important;
   opacity: 1 !important;
-  caret-color: currentColor !important;
-}
-
-/* If we used a mirrored/overlay value to prevent “double numbers”, hide it on iOS */
-.ios .junk .value-mirror,
-.ios .junk .value-overlay,
-.ios .junk .ghost-value {
-  display: none !important;
-}
-
-/* In case we previously hid the native text to avoid double render */
-.ios .junk input[type="number"],
-.ios .junk input[type="text"] {
-  /* undo possible prior hacks */
+  text-shadow: none !important;
+  caret-color: var(--txt) !important;
   background-clip: padding-box !important;
-  /* if you had color:transparent or -webkit-text-fill-color:transparent somewhere */
+  -webkit-appearance: none;
+  transform: translateZ(0); /* WebKit repaint nudge */
 }
+.ios .junkWrap .junkVal{ display: none !important; }
+
 
 /* Optional: ensure background contrast for the junk cells */
 .junk input[type="number"],
