@@ -19,7 +19,7 @@
 <meta name="msapplication-config" content="https://raw.githubusercontent.com/Bunch313131/nassau-app/main/browserconfig.xml" />
 
 <link rel="icon" href="favicon.ico" />
-<title>Bunch Bets (Build 3.0)</title>
+<title>Bunch Bets (Build 3.456)</title>
 <style>
   :root { --bg:#0b0e13; --card:#0f1420; --txt:#ecf0f6; --muted:#a3a9b6; --border:#1e2633; --acc:#3b82f6; color-scheme: light dark; }
   *{ box-sizing:border-box; }
@@ -252,6 +252,39 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
 
 .ios .junk input { transform: translateZ(0); }
 
+/* === iOS-only mirror overlay for junk inputs === */
+/* put this at the VERY END of your <style> so it wins */
+.ios .junkWrap { position: relative; }
+
+/* Make the overlay cover the whole cell and show the live value */
+.ios .junkWrap .junkVal{
+  position: absolute;
+  inset: 0;
+  display: flex !important;             /* override earlier "hide when filled" rules */
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  opacity: 1;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+/* Hide the native glyphs (keep caret visible) */
+.ios .junkWrap .junkBox{
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--txt) !important;    /* keep caret visible */
+  background-clip: padding-box !important;
+  -webkit-appearance: none;
+  position: relative;
+  z-index: 2;                             /* input above table, caret stays clickable */
+}
+
+/* Don’t let earlier rules hide the overlay on iOS */
+.ios .junkWrap .junkBox:not(:placeholder-shown) + .junkVal { display: flex !important; }
+.ios .junkWrap:focus-within .junkVal { display: flex !important; }
 
 
 </style>
