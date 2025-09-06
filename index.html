@@ -122,6 +122,11 @@
   pointer-events:none;
   user-select:none;
 }
+/* Ensure input text always paints above the badge */
+.junkWrap .junkBox{ position: relative; z-index: 2; }
+.junkWrap .junkVal{ z-index: 1; }
+
+  
 /* Show badge only when input is empty */
 .junkWrap .junkBox:not(:placeholder-shown) + .junkVal { display:none; }
 .junkWrap:focus-within .junkVal { display:none; }
