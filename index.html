@@ -317,7 +317,41 @@ th.sticky, td.sticky{
 .junkWrap .junkVal { z-index: 1; }                /* overlays */
 .junkWrap .junkBox   { z-index: 2; }              /* input above overlay */
 
+/* --- Fix: overlay peeking behind input on iOS --- */
+/* Put overlay ABOVE the input, but keep it click-through */
+.ios .junkWrap { position: relative; display: inline-block; overflow: hidden; }
+.ios .junkWrap .junkBox{
+  position: relative;
+  z-index: 1;                          /* input below the overlay */
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border-strong) !important;
+  color: transparent !important;       /* hide native glyphs */
+  -webkit-text-fill-color: transparent !important;
+  caret-color: var(--txt) !important;  /* keep caret visible */
+}
+.ios .junkWrap .junkVal{
+  position: absolute;
+  inset: 0;                            /* cover the pill exactly */
+  display: flex !important;
+  align-items: center; justify-content: center;
+  z-index: 2;                          /* overlay above */
+  pointer-events: none;                /* taps go to input */
+  color: var(--txt) !important;
+  -webkit-text-fill-color: var(--txt) !important;
+  text-shadow: none !important;
+  transform: translateZ(0);            /* iOS paint stability */
+  backface-visibility: hidden;
+}
 
+/* Safety: make sure table cells don’t clip overlay */
+#app td { overflow: visible; }
+
+
+
+
+
+
+  
 </style>
 </head>
 <body>
