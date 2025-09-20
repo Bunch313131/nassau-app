@@ -331,8 +331,88 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
     isolation: isolate;                      /* creates new stacking context */
   }
 }
+/* ---- iOS 26 Light Mode Fixes (scoped) ---- */
+.ios26-light [id^="junkScroll"] {
+  /* Keep z-index math predictable inside the scroller */
+  isolation: isolate;
+  -webkit-overflow-scrolling: touch;
+}
 
+/* 1) OVERLAY NUMBERS: force visible dark text and stop blend quirks */
+.ios26-light [id^="junkScroll"] .overlay,
+.ios26-light [id^="junkScroll"] .numOverlay,
+.ios26-light [id^="junkScroll"] [data-overlay],
+.ios26-light [id^="junkScroll"] [data-overlay="num"] {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important; /* Safari text painting */
+  mix-blend-mode: normal !important;           /* disable any blending */
+  pointer-events: none;                         /* keep inputs clickable */
+  position: relative;                           /* enable z-index */
+  z-index: 3;                                   /* above inputs, below name rail */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* 2) INPUT CELLS: ensure readable bg behind transparent overlays */
+.ios26-light [id^="junkScroll"] input,
+.ios26-light [id^="junkScroll"] .junkCell,
+.ios26-light [id^="junkScroll"] [data-junk-cell] {
+  background: #f8fafc !important;              /* light gray backing */
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  border: 1px solid #e5e7eb;
+  appearance: none;
+  position: relative;
+  z-index: 1;                                   /* base layer */
+  caret-color: #111827;
+}
+
+/* Neutralize iOS autofill yellow making text “disappear” */
+.ios26-light [id^="junkScroll"] input:-webkit-autofill {
+  -webkit-text-fill-color: #111827 !important;
+  transition: background-color 99999s ease-out;
+}
+
+/* 3) LEFT NAME BAR: keep it on top of the “windows” */
+.ios26-light [id^="junkScroll"] .playerName,
+.ios26-light [id^="junkScroll"] .nameCell,
+.ios26-light [id^="junkScroll"] .junkRow > :first-child {
+  position: sticky;           /* stick while horizontal scrolling */
+  left: 0;
+  z-index: 50 !important;     /* above overlays & windows */
+  background: #ffffff !important;
+  color: #111827 !important;
+  box-shadow: 1px 0 0 rgba(0,0,0,0.06); /* gentle divider */
+  will-change: transform;
+  transform: translateZ(0);   /* force its own layer on iOS */
+  backface-visibility: hidden;
+}
+
+/* 4) ANY “WINDOWS”/FLOATING PANES inside junk grid should sit under the name bar */
+.ios26-light [id^="junkScroll"] [class*="window"],
+.ios26-light [id^="junkScroll"] [data-window] {
+  position: relative;
+  z-index: 4;                 /* below the name bar (50), above inputs (1) */
+}
+
+/* Optional: keep the whole grid’s background solid to avoid bleed-through */
+.ios26-light [id^="junkScroll"] .grid,
+.ios26-light [id^="junkScroll"] .table {
+  background: #ffffff;
+}
 </style>
+<script>
+(function () {
+  var ua = navigator.userAgent || "";
+  var isIOS = /iPhone|iPad|iPod/.test(ua);
+  var is26  = /OS 26_/.test(ua) || /Version\/26\./.test(ua);
+  var isLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  if (isIOS && is26 && isLight) {
+    document.documentElement.classList.add('ios26-light');
+  }
+})();
+</script>
+  
 </head>
 <body>
 <header>
