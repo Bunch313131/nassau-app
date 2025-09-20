@@ -287,6 +287,36 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
 .ios .junkWrap .junkBox:not(:placeholder-shown) + .junkVal { display: flex !important; }
 .ios .junkWrap:focus-within .junkVal { display: flex !important; }
 
+/* === Minimal, theme-safe fixes (append at very end of <style>) === */
+
+/* 1) iOS overlay digits: paint using themed text color in light & dark */
+.ios .junkWrap .junkVal{
+  color: var(--txt) !important;
+  -webkit-text-fill-color: var(--txt) !important; /* iOS Safari paint */
+  text-shadow: none !important;                   /* avoid washout */
+  opacity: 1 !important;
+}
+
+/* Keep caret visible even though digits are mirrored by overlay */
+.ios .junkWrap .junkBox{
+  caret-color: var(--txt) !important;
+}
+
+/* 2) Sticky name column should always sit on top of the grid "windows" */
+.card.scroll { isolation: isolate; }              /* predictable z-index */
+th.sticky, td.sticky{
+  position: sticky; left: 0;
+  z-index: 10 !important;                         /* above inputs/overlays */
+  background: var(--card);                        /* solid, theme-aware */
+  transform: translateZ(0); backface-visibility: hidden; /* iOS layer */
+}
+
+/* Make sure cell overlays never outrank the sticky name rail */
+.cellWrap, .junkWrap { position: relative; }      /* creates local stack */
+.cellWrap .dots,
+.junkWrap .junkVal { z-index: 1; }                /* overlays */
+.junkWrap .junkBox   { z-index: 2; }              /* input above overlay */
+
 
 </style>
 </head>
