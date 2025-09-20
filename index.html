@@ -285,7 +285,52 @@ label.radio-nowrap { white-space: nowrap; padding-right: 8px; }
 /* Don’t let earlier rules hide the overlay on iOS */
 .ios .junkWrap .junkBox:not(:placeholder-shown) + .junkVal { display: flex !important; }
 .ios .junkWrap:focus-within .junkVal { display: flex !important; }
+/* --- iOS 26 light-mode fixes for Junk grid --- */
+@media (prefers-color-scheme: light) {
 
+  /* Make the junk inputs readable (iOS was forcing light-on-light) */
+  #junkScroll input,
+  #junkScroll .junkCell,
+  #junkScroll [data-junk-cell] {
+    background-color: #f9fafb !important;  /* light gray */
+    color: #111827 !important;              /* dark text */
+    -webkit-text-fill-color: #111827 !important; /* iOS Safari */
+    border: 1px solid #d1d5db;              
+    caret-color: #111827;
+    position: relative;                     /* for z-index to apply */
+    z-index: 1;
+  }
+
+  #junkScroll input::placeholder {
+    color: #9ca3af !important;
+  }
+
+  /* If iOS applies autofill styles, keep the text visible */
+  #junkScroll input:-webkit-autofill {
+    -webkit-text-fill-color: #111827 !important;
+    transition: background-color 99999s; /* neutralize yellow autofill flash */
+  }
+
+  /* Solid background for the name/first column so it never "disappears" */
+  /* Works even if you don't have a special class; targets first cell in each row */
+  #junkScroll .junkRow > :first-child,
+  #junkScroll .row > :first-child,
+  #junkScroll .nameCell,
+  #junkScroll .playerName {
+    background-color: #ffffff !important;   /* solid white */
+    color: #111827 !important;
+    position: relative;
+    z-index: 2;                             /* above input cells */
+  }
+
+  /* Ensure the whole grid area isn't translucent in light mode */
+  #junkScroll,
+  #junkScroll .grid,
+  #junkScroll .table {
+    background-color: #eef7ee;              /* matches your greenish panel */
+    isolation: isolate;                      /* creates new stacking context */
+  }
+}
 
 </style>
 </head>
